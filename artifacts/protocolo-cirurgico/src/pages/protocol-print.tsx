@@ -384,12 +384,15 @@ export function ProtocolPrint() {
     outro: "Outro",
   };
 
-  const headerPhoto = planningImages.find(img => img.isHeaderPhoto && img.includeInPdf);
+  // PDFs não podem ser embebidos como <img> — excluir do relatório impresso
+  const isPdfDoc = (img: { originalName?: string | null; objectPath?: string | null }) =>
+    !!(img.originalName?.toLowerCase().endsWith(".pdf") || img.objectPath?.toLowerCase().endsWith(".pdf"));
+  const headerPhoto = planningImages.find(img => img.isHeaderPhoto && img.includeInPdf && !isPdfDoc(img));
   const clinicalPhotos = planningImages.filter(
-    img => img.includeInPdf && CLINICAL_PHOTO_CATEGORIES.includes(img.category)
+    img => img.includeInPdf && CLINICAL_PHOTO_CATEGORIES.includes(img.category) && !isPdfDoc(img)
   );
   const pdfImages = planningImages.filter(
-    img => img.includeInPdf && !CLINICAL_PHOTO_CATEGORIES.includes(img.category)
+    img => img.includeInPdf && !CLINICAL_PHOTO_CATEGORIES.includes(img.category) && !isPdfDoc(img)
   );
   const pdfFiles3d = files3d.filter(f => f.includeInPdf);
   const piezo = protocol?.piezoEquipment;
@@ -494,6 +497,16 @@ export function ProtocolPrint() {
           </div>
         </div>
 
+        {/* Section: Avisos Importantes */}
+        {protocol.preopDiagnosis && (protocol.preopDiagnosis as any).clinicalAlerts && (
+          <div className="mb-8 border-2 border-red-500 bg-red-50 p-4">
+            <h2 className="text-sm font-bold uppercase tracking-widest text-red-700 mb-2">⚠ Avisos Importantes</h2>
+            <div className="text-sm font-semibold text-red-900 whitespace-pre-wrap">
+              {(protocol.preopDiagnosis as any).clinicalAlerts}
+            </div>
+          </div>
+        )}
+
         {/* Section: Equipa */}
         <div className="mb-8">
           <h2 className="text-sm font-bold uppercase tracking-widest bg-gray-100 p-2 mb-4 border-l-4 border-primary">Equipa Cirúrgica</h2>
@@ -510,6 +523,14 @@ export function ProtocolPrint() {
         {/* Section: Plano Cirúrgico */}
         {protocol.surgicalPlan && <SurgicalPlanPrint plan={protocol.surgicalPlan} />}
 
+        {/* Section: Parte Nasal */}
+        {protocol.surgicalPlan && (protocol.surgicalPlan as any).nasalNotes && (
+          <div className="mb-8 border border-amber-400 bg-amber-50 p-4">
+            <h2 className="text-sm font-bold uppercase tracking-widest text-amber-800 mb-2">Parte Nasal</h2>
+            <div className="text-sm whitespace-pre-wrap">{(protocol.surgicalPlan as any).nasalNotes}</div>
+          </div>
+        )}
+
         {/* Section: Descritivo */}
         <div className="mb-8">
           <h2 className="text-sm font-bold uppercase tracking-widest bg-gray-100 p-2 mb-4 border-l-4 border-primary">Descritivo Operatório</h2>
@@ -522,7 +543,7 @@ export function ProtocolPrint() {
         {protocol.intraopRecord && (
           <div className="mb-8">
             <h2 className="text-sm font-bold uppercase tracking-widest bg-gray-100 p-2 mb-4 border-l-4 border-primary">Registo Intra-operatório</h2>
-            <div className="grid grid-cols-3 gap-4 text-sm border p-4">
+            <div className="grid grid-cols-2 gap-4 text-sm border p-4">
               <div>
                 <span className="font-semibold text-gray-600 block mb-1">Anestesia</span>
                 Início: {protocol.intraopRecord.anesthesiaStartTime || "--:--"} <br />
@@ -532,11 +553,6 @@ export function ProtocolPrint() {
                 <span className="font-semibold text-gray-600 block mb-1">Cirurgia</span>
                 Início: {protocol.intraopRecord.surgeryStartTime || "--:--"} <br />
                 Fim: {protocol.intraopRecord.surgeryEndTime || "--:--"}
-              </div>
-              <div>
-                <span className="font-semibold text-gray-600 block mb-1">Perdas & Fluidos</span>
-                Sangue Estimado: {protocol.intraopRecord.estimatedBloodLoss ? `${protocol.intraopRecord.estimatedBloodLoss} ml` : "-"}<br />
-                Fluidos: {protocol.intraopRecord.fluidAdministered ? `${protocol.intraopRecord.fluidAdministered} ml` : "-"}
               </div>
             </div>
             

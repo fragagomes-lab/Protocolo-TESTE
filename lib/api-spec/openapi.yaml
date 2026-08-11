@@ -925,6 +925,7 @@ components:
         airwayCompromise: { type: boolean }
         tmjSymptoms: { type: boolean }
         additionalNotes: { type: string }
+        clinicalAlerts: { type: string }
 
     OrthoMovements:
       type: object
@@ -1008,6 +1009,7 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/AssociatedProcedure"
+        nasalNotes: { type: string }
 
     SurgicalSequenceStep:
       type: object

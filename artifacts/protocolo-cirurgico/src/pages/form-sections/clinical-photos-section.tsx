@@ -2,6 +2,10 @@ import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { isFinalizedLockError, finalizedLockMessage } from "@/lib/finalized-error";
+import { IMAGE_UPLOAD_ACCEPT, resolveContentType, isPdfName } from "@/lib/upload-utils";
+
+const isPdfImage = (img: { originalName?: string | null; objectPath?: string | null }) =>
+  isPdfName(img.originalName) || isPdfName(img.objectPath);
 import {
   useListPlanningImages,
   useCreatePlanningImage,
@@ -30,6 +34,7 @@ import {
   ImageOff,
   Loader2,
   Camera,
+  FileText,
   Calendar,
 } from "lucide-react";
 
@@ -95,10 +100,11 @@ export function ClinicalPhotosSection({ protocolId, isFinalized = false }: Clini
     for (const file of files) {
       setUploadingCount(c => c + 1);
       try {
+        const contentType = resolveContentType(file);
         const { uploadURL, objectPath } = await requestUpload({
-          data: { name: file.name, size: file.size, contentType: file.type },
+          data: { name: file.name, size: file.size, contentType },
         });
-        await fetch(uploadURL, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+        await fetch(uploadURL, { method: "PUT", body: file, headers: { "Content-Type": contentType } });
         await createImage({
           id: protocolId,
           data: {
@@ -171,12 +177,20 @@ export function ClinicalPhotosSection({ protocolId, isFinalized = false }: Clini
 
   return (
     <div className="space-y-8">
-      <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileChange} />
+      <input ref={fileInputRef} type="file" accept={IMAGE_UPLOAD_ACCEPT} multiple className="hidden" onChange={handleFileChange} />
 
       {/* Header photo */}
       <div className="flex gap-5 items-center bg-muted/10 border border-border/60 rounded-sm p-4">
         <div className="w-32 h-32 flex-shrink-0 bg-muted/30 border rounded-sm overflow-hidden flex items-center justify-center">
-          {headerPhoto ? (
+          {headerPhoto && isPdfImage(headerPhoto) ? (
+            <div
+              className="w-full h-full flex flex-col items-center justify-center gap-1 cursor-pointer text-muted-foreground hover:text-primary"
+              onClick={() => window.open(headerPhoto.servingUrl, "_blank")}
+            >
+              <FileText className="h-8 w-8" />
+              <span className="text-[10px]">PDF</span>
+            </div>
+          ) : headerPhoto ? (
             <img
               src={headerPhoto.servingUrl}
               alt="Fotografia principal"
@@ -241,12 +255,22 @@ export function ClinicalPhotosSection({ protocolId, isFinalized = false }: Clini
                 {images.map((img, idx) => (
                   <div key={img.id} className="relative border rounded-sm bg-white shadow-xs group overflow-hidden">
                     <div className="relative">
+                      {isPdfImage(img) ? (
+                        <div
+                          className="w-full h-36 flex flex-col items-center justify-center gap-2 bg-muted/20 cursor-pointer text-muted-foreground hover:text-primary"
+                          onClick={() => window.open(img.servingUrl, "_blank")}
+                        >
+                          <FileText className="h-8 w-8" />
+                          <span className="text-xs font-medium">Documento PDF — abrir</span>
+                        </div>
+                      ) : (
                       <img
                         src={img.servingUrl}
                         alt={img.caption || img.originalName || "Fotografia"}
                         className="w-full h-36 object-cover cursor-pointer"
                         onClick={() => setLightbox({ list: images, index: idx })}
                       />
+                      )}
                       {img.isHeaderPhoto && (
                         <Badge className="absolute top-1.5 left-1.5 text-[9px] rounded-sm bg-primary text-white border-0 uppercase tracking-wider gap-0.5">
                           <Star className="h-2.5 w-2.5 fill-white" /> Principal
@@ -355,11 +379,21 @@ export function ClinicalPhotosSection({ protocolId, isFinalized = false }: Clini
                   <ChevronRight className="h-6 w-6" />
                 </button>
               )}
+              {isPdfImage(lightbox.list[lightbox.index]) ? (
+                <div
+                  className="flex flex-col items-center justify-center gap-3 text-white/80 cursor-pointer hover:text-white py-20"
+                  onClick={() => window.open(lightbox.list[lightbox.index].servingUrl, "_blank")}
+                >
+                  <FileText className="h-16 w-16" />
+                  <span className="text-sm">Documento PDF — clique para abrir</span>
+                </div>
+              ) : (
               <img
                 src={lightbox.list[lightbox.index].servingUrl}
                 alt={lightbox.list[lightbox.index].caption || "Fotografia"}
                 className="max-h-[80vh] max-w-full object-contain"
               />
+              )}
               <div className="w-full bg-black/70 p-3 text-center">
                 <p className="text-white text-sm">{lightbox.list[lightbox.index].caption || lightbox.list[lightbox.index].originalName || ""}</p>
                 <p className="text-white/50 text-xs mt-1">

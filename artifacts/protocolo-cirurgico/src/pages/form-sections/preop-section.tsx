@@ -208,6 +208,19 @@ export function PreopSection({ checklist, updateChecklist, diagnosis, updateDiag
             </div>
           )}
 
+          <div className="space-y-2 pt-4 border-2 border-red-300 bg-red-50/60 rounded-sm p-4">
+            <Label className="text-xs uppercase tracking-wider text-red-700 font-bold">⚠ Avisos Importantes (ex: risco cardíaco, alergias, anticoagulação...)</Label>
+            <Textarea 
+              value={(diagnosis as any).clinicalAlerts || ""} 
+              onChange={(e) => handleDiagChange("clinicalAlerts" as any, e.target.value)} 
+              disabled={isFinalized}
+              className="resize-none bg-white border-red-200"
+              rows={3}
+              placeholder="Ex: Risco cardíaco — avaliação cardiológica obrigatória; alergia a penicilina..."
+            />
+            <p className="text-[11px] text-red-700/80">Estes avisos aparecem em destaque em todos os passos do protocolo e no relatório impresso.</p>
+          </div>
+
           <div className="space-y-2 pt-4">
             <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Notas Diagnósticas Adicionais</Label>
             <Textarea 

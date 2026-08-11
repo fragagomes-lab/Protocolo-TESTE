@@ -1,1 +1,2 @@
 - [Origem do projeto](project-origin.md) — app copiada do ZIP original "Protocolo Operatório"; sem autenticação e sem dados dos 548 protocolos originais.
+- [Codegen Orval/Zod](orval-codegen.md) — orval fixo em 8.21.0; versões ≥8.23 geram API zod v4 e partem o codegen.

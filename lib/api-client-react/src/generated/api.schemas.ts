@@ -73,6 +73,7 @@ export interface PreopDiagnosis {
   airwayCompromise?: boolean;
   tmjSymptoms?: boolean;
   additionalNotes?: string;
+  clinicalAlerts?: string;
 }
 
 export interface OrthoMovements {
@@ -191,6 +192,7 @@ export interface SurgicalPlan {
   mandible?: MandiblePlan;
   chin?: ChinPlan;
   associated?: AssociatedProcedure[];
+  nasalNotes?: string;
 }
 
 export interface SurgicalSequenceStep {

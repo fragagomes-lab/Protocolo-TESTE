@@ -53,7 +53,7 @@ export function PlanSection({ plan, updatePlan, isFinalized }: PlanSectionProps)
   };
 
   // Helper for Movement Inputs to keep the visual "clinical"
-  const MoveInput = ({ label, value, onChange }: { label: string, value: number | null | undefined, onChange: (v: number) => void }) => (
+  const MoveInput = ({ label, value, onChange, hint }: { label: string, value: number | null | undefined, onChange: (v: number) => void, hint?: string }) => (
     <div className="flex flex-col space-y-2">
       <Label className="text-[10px] uppercase tracking-wider text-muted-foreground text-center">{label}</Label>
       <div className="relative">
@@ -67,6 +67,7 @@ export function PlanSection({ plan, updatePlan, isFinalized }: PlanSectionProps)
         />
         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-mono">mm</span>
       </div>
+      {hint && <span className="text-[10px] text-muted-foreground text-center leading-tight">{hint}</span>}
     </div>
   );
 
@@ -99,11 +100,13 @@ export function PlanSection({ plan, updatePlan, isFinalized }: PlanSectionProps)
                 label="Transverso Dir." 
                 value={plan.maxilla.segments?.[0]?.movements?.transverseRight} 
                 onChange={(v) => updateMaxillaMovements('transverseRight', v)} 
+                hint="− dta / + esq do doente"
               />
               <MoveInput 
                 label="Transverso Esq." 
                 value={plan.maxilla.segments?.[0]?.movements?.transverseLeft} 
                 onChange={(v) => updateMaxillaMovements('transverseLeft', v)} 
+                hint="− dta / + esq do doente"
               />
               <MoveInput 
                 label="Rotação (Yaw)" 
@@ -179,6 +182,7 @@ export function PlanSection({ plan, updatePlan, isFinalized }: PlanSectionProps)
                 label="Transverso/Lateralidade" 
                 value={plan.mandible.movements?.transverseRight} 
                 onChange={(v) => { updateMandibleMovements('transverseRight', v); updateMandibleMovements('transverseLeft', v); }} 
+                hint="− dta / + esq do doente"
               />
               <MoveInput 
                 label="Rotação (Yaw)" 
@@ -208,7 +212,6 @@ export function PlanSection({ plan, updatePlan, isFinalized }: PlanSectionProps)
                   <SelectContent>
                     <SelectItem value="manual">Manual / Passivo</SelectItem>
                     <SelectItem value="navigation">Navegação</SelectItem>
-                    <SelectItem value="splint">Goteira de Posicionamento</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -243,10 +246,29 @@ export function PlanSection({ plan, updatePlan, isFinalized }: PlanSectionProps)
                 label="Transverso/Assimetria" 
                 value={plan.chin.movements?.transverseRight} 
                 onChange={(v) => updateChinMovements('transverseRight', v)} 
+                hint="− dta / + esq do doente"
               />
             </div>
           </CardContent>
         )}
+      </Card>
+
+      {/* PARTE NASAL */}
+      <Card className="shadow-xs border-amber-300 border-2 bg-amber-50/40">
+        <CardHeader className="py-4">
+          <CardTitle className="uppercase tracking-widest text-base text-amber-800">⚠ Parte Nasal — Não Esquecer</CardTitle>
+          <CardDescription>Septo, espinha nasal, cinch, base alar, turbinectomia...</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <textarea
+            value={(plan as any).nasalNotes || ""}
+            onChange={(e) => { if (!isFinalized) updatePlan({ ...plan, nasalNotes: e.target.value } as SurgicalPlan); }}
+            disabled={isFinalized}
+            rows={3}
+            placeholder="Ex: Septoplastia associada; sutura de cinch alar; recontorno da espinha nasal anterior..."
+            className="w-full text-sm rounded-sm border border-amber-200 bg-white p-3 resize-none focus:outline-none focus:ring-1 focus:ring-amber-400"
+          />
+        </CardContent>
       </Card>
 
     </div>

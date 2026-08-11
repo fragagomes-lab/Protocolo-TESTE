@@ -32,7 +32,9 @@ import {
   ChevronRight,
   ImageOff,
   Loader2,
+  FileText,
 } from "lucide-react";
+import { IMAGE_UPLOAD_ACCEPT, resolveContentType, isPdfName } from "@/lib/upload-utils";
 
 const CATEGORY_LABELS: Record<string, string> = {
   fotografias_clinicas: "Fotografias Clínicas",
@@ -86,15 +88,16 @@ export function PlanningSection({ protocolId }: PlanningSectionProps) {
 
     for (const file of files) {
       const key = `${file.name}-${Date.now()}`;
+      const contentType = resolveContentType(file);
       setUploadingFiles(prev => new Set(prev).add(key));
       try {
         const { uploadURL, objectPath } = await requestUploadMutateAsync({
-          data: { name: file.name, size: file.size, contentType: file.type },
+          data: { name: file.name, size: file.size, contentType },
         });
         await fetch(uploadURL, {
           method: "PUT",
           body: file,
-          headers: { "Content-Type": file.type },
+          headers: { "Content-Type": contentType },
         });
         const servingUrl = "/api/storage" + objectPath;
         await createImageMutateAsync({
@@ -243,7 +246,7 @@ export function PlanningSection({ protocolId }: PlanningSectionProps) {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept={IMAGE_UPLOAD_ACCEPT}
             multiple
             className="hidden"
             onChange={handleFileChange}
@@ -284,12 +287,22 @@ export function PlanningSection({ protocolId }: PlanningSectionProps) {
               >
                 {/* Thumbnail */}
                 <div className="relative">
+                  {isPdfName(image.originalName) || isPdfName(image.objectPath) ? (
+                    <div
+                      className="w-full h-40 flex flex-col items-center justify-center gap-2 bg-muted/20 cursor-pointer text-muted-foreground hover:text-primary"
+                      onClick={() => window.open(image.servingUrl, "_blank")}
+                    >
+                      <FileText className="h-10 w-10" />
+                      <span className="text-xs font-medium">Documento PDF — abrir</span>
+                    </div>
+                  ) : (
                   <img
                     src={image.servingUrl}
                     alt={image.caption || image.originalName || "Imagem"}
                     className="w-full h-40 object-cover cursor-pointer"
                     onClick={() => setLightboxIndex(index)}
                   />
+                  )}
                   {/* Category badge */}
                   <Badge className="absolute top-2 left-2 text-[10px] rounded-sm bg-sidebar text-white border-0 uppercase tracking-wider">
                     {CATEGORY_LABELS[image.category] || image.category}

@@ -545,7 +545,7 @@ export function IntraopSection({ record, updateRecord, materials, updateMaterial
       {/* ── Timing & Blood ──────────────────────────────────────────── */}
       <Card className="shadow-xs border-border/50">
         <CardHeader>
-          <CardTitle className="uppercase tracking-widest text-sm text-primary">Tempos Cirúrgicos & Sangramento</CardTitle>
+          <CardTitle className="uppercase tracking-widest text-sm text-primary">Tempos Cirúrgicos</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-x-8 gap-y-6">
@@ -573,16 +573,6 @@ export function IntraopSection({ record, updateRecord, materials, updateMaterial
                   <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Fim</Label>
                   <Input type="time" value={record.surgeryEndTime || ""} onChange={e => handleRecordChange("surgeryEndTime", e.target.value)} disabled={isFinalized} className="font-mono text-lg h-12" />
                 </div>
-              </div>
-            </div>
-            <div className="col-span-2 pt-4 border-t grid grid-cols-2 gap-8">
-              <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Perda Sanguínea Estimada (ml)</Label>
-                <Input type="number" value={record.estimatedBloodLoss || ""} onChange={e => handleRecordChange("estimatedBloodLoss", parseInt(e.target.value))} disabled={isFinalized} className="font-mono" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Fluidos Administrados (ml)</Label>
-                <Input type="number" value={record.fluidAdministered || ""} onChange={e => handleRecordChange("fluidAdministered", parseInt(e.target.value))} disabled={isFinalized} className="font-mono" />
               </div>
             </div>
           </div>

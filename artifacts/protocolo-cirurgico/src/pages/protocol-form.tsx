@@ -105,6 +105,18 @@ export function ProtocolForm() {
     }
   }, [protocol]);
 
+  // Idade calculada automaticamente a partir da data de nascimento
+  const computeAge = (dob?: string | null, refDate?: string | null): number | undefined => {
+    if (!dob) return undefined;
+    const birth = new Date(dob.split('T')[0]);
+    if (isNaN(birth.getTime())) return undefined;
+    const ref = refDate ? new Date(refDate.split('T')[0]) : new Date();
+    let age = ref.getFullYear() - birth.getFullYear();
+    const m = ref.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && ref.getDate() < birth.getDate())) age--;
+    return age >= 0 && age < 130 ? age : undefined;
+  };
+
   // Update Form Data Helper
   const updateForm = useCallback((key: keyof ProtocolInput, value: any) => {
     setFormData(prev => ({ ...prev, [key]: value }));
@@ -315,6 +327,17 @@ export function ProtocolForm() {
       <div className="flex-1 overflow-auto bg-muted/5 p-8">
         <div className="max-w-4xl mx-auto space-y-6">
           
+          {/* AVISOS IMPORTANTES — sempre visível em todos os passos */}
+          {(formData.preopDiagnosis as any)?.clinicalAlerts && (
+            <div className="flex items-start gap-3 bg-red-50 border-2 border-red-400 rounded-sm p-4 text-red-900">
+              <span className="text-xl leading-none" aria-hidden>⚠</span>
+              <div>
+                <div className="text-xs uppercase tracking-widest font-bold text-red-700 mb-1">Avisos Importantes</div>
+                <div className="text-sm whitespace-pre-wrap font-medium">{(formData.preopDiagnosis as any).clinicalAlerts}</div>
+              </div>
+            </div>
+          )}
+
           {/* STEP 1: Identification & Team */}
           {currentStep === 1 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -340,7 +363,14 @@ export function ProtocolForm() {
                         id="surgeryDate" 
                         type="date"
                         value={formData.surgeryDate ? formData.surgeryDate.split('T')[0] : ""} 
-                        onChange={(e) => updateForm("surgeryDate", e.target.value)} 
+                        onChange={(e) => {
+                          const surgeryDate = e.target.value;
+                          setFormData(prev => ({
+                            ...prev,
+                            surgeryDate,
+                            patientAge: computeAge(prev.patientDOB, surgeryDate) ?? prev.patientAge,
+                          }));
+                        }} 
                         disabled={isFinalized}
                       />
                     </div>
@@ -359,23 +389,31 @@ export function ProtocolForm() {
 
                   <div className="grid grid-cols-3 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="patientAge" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Idade</Label>
-                      <Input 
-                        id="patientAge" 
-                        type="number"
-                        value={formData.patientAge || ""} 
-                        onChange={(e) => updateForm("patientAge", parseInt(e.target.value))} 
-                        disabled={isFinalized}
-                      />
-                    </div>
-                    <div className="space-y-2">
                       <Label htmlFor="patientDOB" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Data Nasc.</Label>
                       <Input 
                         id="patientDOB" 
                         type="date"
                         value={formData.patientDOB ? formData.patientDOB.split('T')[0] : ""} 
-                        onChange={(e) => updateForm("patientDOB", e.target.value)} 
+                        onChange={(e) => {
+                          const dob = e.target.value;
+                          setFormData(prev => ({
+                            ...prev,
+                            patientDOB: dob,
+                            patientAge: computeAge(dob, prev.surgeryDate) ?? prev.patientAge,
+                          }));
+                        }} 
                         disabled={isFinalized}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="patientAge" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Idade (automática)</Label>
+                      <Input 
+                        id="patientAge" 
+                        type="number"
+                        value={computeAge(formData.patientDOB, formData.surgeryDate) ?? formData.patientAge ?? ""} 
+                        readOnly
+                        disabled
+                        className="bg-muted/40"
                       />
                     </div>
                     <div className="space-y-2">
@@ -411,6 +449,7 @@ export function ProtocolForm() {
                         <SelectItem value="Cirurgia Ortognática Monomaxilar">Cirurgia Ortognática Monomaxilar</SelectItem>
                         <SelectItem value="Mentoplastia Isolada">Mentoplastia Isolada</SelectItem>
                         <SelectItem value="Expansão Cirurgicamente Assistida (SARPE)">Expansão Cirurgicamente Assistida (SARPE)</SelectItem>
+                        <SelectItem value="Aumento Aloplástico na Maxila ou Mandíbula">Aumento Aloplástico na Maxila ou Mandíbula</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

@@ -79,7 +79,8 @@ export const CreateProtocolBody = zod.object({
   "overjet": zod.number().optional(),
   "airwayCompromise": zod.boolean().optional(),
   "tmjSymptoms": zod.boolean().optional(),
-  "additionalNotes": zod.string().optional()
+  "additionalNotes": zod.string().optional(),
+  "clinicalAlerts": zod.string().optional()
 }).optional(),
   "surgicalPlan": zod.object({
   "maxilla": zod.object({
@@ -131,7 +132,8 @@ export const CreateProtocolBody = zod.object({
   "name": zod.string(),
   "details": zod.string().optional(),
   "side": zod.enum(['bilateral', 'left', 'right', 'central', '']).optional()
-})).optional()
+})).optional(),
+  "nasalNotes": zod.string().optional()
 }).optional(),
   "surgicalSequence": zod.array(zod.object({
   "order": zod.number(),
@@ -298,7 +300,8 @@ export const CreateProtocolResponse = zod.object({
   "overjet": zod.number().optional(),
   "airwayCompromise": zod.boolean().optional(),
   "tmjSymptoms": zod.boolean().optional(),
-  "additionalNotes": zod.string().optional()
+  "additionalNotes": zod.string().optional(),
+  "clinicalAlerts": zod.string().optional()
 }).optional(),
   "surgicalPlan": zod.object({
   "maxilla": zod.object({
@@ -350,7 +353,8 @@ export const CreateProtocolResponse = zod.object({
   "name": zod.string(),
   "details": zod.string().optional(),
   "side": zod.enum(['bilateral', 'left', 'right', 'central', '']).optional()
-})).optional()
+})).optional(),
+  "nasalNotes": zod.string().optional()
 }).optional(),
   "surgicalSequence": zod.array(zod.object({
   "order": zod.number(),
@@ -568,7 +572,8 @@ export const GetProtocolResponse = zod.object({
   "overjet": zod.number().optional(),
   "airwayCompromise": zod.boolean().optional(),
   "tmjSymptoms": zod.boolean().optional(),
-  "additionalNotes": zod.string().optional()
+  "additionalNotes": zod.string().optional(),
+  "clinicalAlerts": zod.string().optional()
 }).optional(),
   "surgicalPlan": zod.object({
   "maxilla": zod.object({
@@ -620,7 +625,8 @@ export const GetProtocolResponse = zod.object({
   "name": zod.string(),
   "details": zod.string().optional(),
   "side": zod.enum(['bilateral', 'left', 'right', 'central', '']).optional()
-})).optional()
+})).optional(),
+  "nasalNotes": zod.string().optional()
 }).optional(),
   "surgicalSequence": zod.array(zod.object({
   "order": zod.number(),
@@ -800,7 +806,8 @@ export const UpdateProtocolBody = zod.object({
   "overjet": zod.number().optional(),
   "airwayCompromise": zod.boolean().optional(),
   "tmjSymptoms": zod.boolean().optional(),
-  "additionalNotes": zod.string().optional()
+  "additionalNotes": zod.string().optional(),
+  "clinicalAlerts": zod.string().optional()
 }).optional(),
   "surgicalPlan": zod.object({
   "maxilla": zod.object({
@@ -852,7 +859,8 @@ export const UpdateProtocolBody = zod.object({
   "name": zod.string(),
   "details": zod.string().optional(),
   "side": zod.enum(['bilateral', 'left', 'right', 'central', '']).optional()
-})).optional()
+})).optional(),
+  "nasalNotes": zod.string().optional()
 }).optional(),
   "surgicalSequence": zod.array(zod.object({
   "order": zod.number(),
@@ -1020,7 +1028,8 @@ export const UpdateProtocolResponse = zod.object({
   "overjet": zod.number().optional(),
   "airwayCompromise": zod.boolean().optional(),
   "tmjSymptoms": zod.boolean().optional(),
-  "additionalNotes": zod.string().optional()
+  "additionalNotes": zod.string().optional(),
+  "clinicalAlerts": zod.string().optional()
 }).optional(),
   "surgicalPlan": zod.object({
   "maxilla": zod.object({
@@ -1072,7 +1081,8 @@ export const UpdateProtocolResponse = zod.object({
   "name": zod.string(),
   "details": zod.string().optional(),
   "side": zod.enum(['bilateral', 'left', 'right', 'central', '']).optional()
-})).optional()
+})).optional(),
+  "nasalNotes": zod.string().optional()
 }).optional(),
   "surgicalSequence": zod.array(zod.object({
   "order": zod.number(),
@@ -1263,7 +1273,8 @@ export const DuplicateProtocolResponse = zod.object({
   "overjet": zod.number().optional(),
   "airwayCompromise": zod.boolean().optional(),
   "tmjSymptoms": zod.boolean().optional(),
-  "additionalNotes": zod.string().optional()
+  "additionalNotes": zod.string().optional(),
+  "clinicalAlerts": zod.string().optional()
 }).optional(),
   "surgicalPlan": zod.object({
   "maxilla": zod.object({
@@ -1315,7 +1326,8 @@ export const DuplicateProtocolResponse = zod.object({
   "name": zod.string(),
   "details": zod.string().optional(),
   "side": zod.enum(['bilateral', 'left', 'right', 'central', '']).optional()
-})).optional()
+})).optional(),
+  "nasalNotes": zod.string().optional()
 }).optional(),
   "surgicalSequence": zod.array(zod.object({
   "order": zod.number(),
@@ -1526,7 +1538,8 @@ export const ListTemplatesResponseItem = zod.object({
   "name": zod.string(),
   "details": zod.string().optional(),
   "side": zod.enum(['bilateral', 'left', 'right', 'central', '']).optional()
-})).optional()
+})).optional(),
+  "nasalNotes": zod.string().optional()
 }).optional(),
   "surgicalSequence": zod.array(zod.object({
   "order": zod.number(),
@@ -1604,7 +1617,8 @@ export const CreateTemplateBody = zod.object({
   "name": zod.string(),
   "details": zod.string().optional(),
   "side": zod.enum(['bilateral', 'left', 'right', 'central', '']).optional()
-})).optional()
+})).optional(),
+  "nasalNotes": zod.string().optional()
 }).optional(),
   "surgicalSequence": zod.array(zod.object({
   "order": zod.number(),
@@ -1676,7 +1690,8 @@ export const CreateTemplateResponse = zod.object({
   "name": zod.string(),
   "details": zod.string().optional(),
   "side": zod.enum(['bilateral', 'left', 'right', 'central', '']).optional()
-})).optional()
+})).optional(),
+  "nasalNotes": zod.string().optional()
 }).optional(),
   "surgicalSequence": zod.array(zod.object({
   "order": zod.number(),
@@ -1758,7 +1773,8 @@ export const GetTemplateResponse = zod.object({
   "name": zod.string(),
   "details": zod.string().optional(),
   "side": zod.enum(['bilateral', 'left', 'right', 'central', '']).optional()
-})).optional()
+})).optional(),
+  "nasalNotes": zod.string().optional()
 }).optional(),
   "surgicalSequence": zod.array(zod.object({
   "order": zod.number(),
@@ -1839,7 +1855,8 @@ export const UpdateTemplateBody = zod.object({
   "name": zod.string(),
   "details": zod.string().optional(),
   "side": zod.enum(['bilateral', 'left', 'right', 'central', '']).optional()
-})).optional()
+})).optional(),
+  "nasalNotes": zod.string().optional()
 }).optional(),
   "surgicalSequence": zod.array(zod.object({
   "order": zod.number(),
@@ -1911,7 +1928,8 @@ export const UpdateTemplateResponse = zod.object({
   "name": zod.string(),
   "details": zod.string().optional(),
   "side": zod.enum(['bilateral', 'left', 'right', 'central', '']).optional()
-})).optional()
+})).optional(),
+  "nasalNotes": zod.string().optional()
 }).optional(),
   "surgicalSequence": zod.array(zod.object({
   "order": zod.number(),
