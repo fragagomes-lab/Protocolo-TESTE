@@ -153,9 +153,18 @@ function SurgicalPlanPrint({ plan }: { plan: SurgicalPlan }) {
                   movements={seg.movements}
                 />
               ))
-            ) : (
-              <MovementsRow segment="Maxila" movements={maxilla.segments?.[0]?.movements} />
-            ))}
+            ) : (() => {
+              const m = maxilla.segments?.[0]?.movements;
+              const hasSides = m && (m.sagittalRight != null || m.sagittalLeft != null || m.verticalRight != null || m.verticalLeft != null);
+              return hasSides ? (
+                <>
+                  <MovementsRow segment="Maxila — Dta. (ENP)" movements={{ sagittal: m!.sagittalRight, vertical: m!.verticalRight, transverseRight: m!.transverseRight, rotation: m!.rotation }} />
+                  <MovementsRow segment="Maxila — Esq. (ponto A)" movements={{ sagittal: m!.sagittalLeft, vertical: m!.verticalLeft, transverseLeft: m!.transverseLeft }} />
+                </>
+              ) : (
+                <MovementsRow segment="Maxila" movements={m} />
+              );
+            })())}
           {mandible && <MovementsRow segment="Mandíbula" movements={mandible.movements} />}
           {chin && <MovementsRow segment="Mento" movements={chin.movements} />}
         </tbody>

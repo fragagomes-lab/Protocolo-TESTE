@@ -91,6 +91,10 @@ export const CreateProtocolBody = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -107,6 +111,10 @@ export const CreateProtocolBody = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -122,6 +130,10 @@ export const CreateProtocolBody = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -312,6 +324,10 @@ export const CreateProtocolResponse = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -328,6 +344,10 @@ export const CreateProtocolResponse = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -343,6 +363,10 @@ export const CreateProtocolResponse = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -585,6 +609,10 @@ export const GetProtocolResponse = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -601,6 +629,10 @@ export const GetProtocolResponse = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -616,6 +648,10 @@ export const GetProtocolResponse = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -820,6 +856,10 @@ export const UpdateProtocolBody = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -836,6 +876,10 @@ export const UpdateProtocolBody = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -851,6 +895,10 @@ export const UpdateProtocolBody = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -1042,6 +1090,10 @@ export const UpdateProtocolResponse = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -1058,6 +1110,10 @@ export const UpdateProtocolResponse = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -1073,6 +1129,10 @@ export const UpdateProtocolResponse = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -1288,6 +1348,10 @@ export const DuplicateProtocolResponse = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -1304,6 +1368,10 @@ export const DuplicateProtocolResponse = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -1319,6 +1387,10 @@ export const DuplicateProtocolResponse = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -1501,6 +1573,10 @@ export const ListTemplatesResponseItem = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -1517,6 +1593,10 @@ export const ListTemplatesResponseItem = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -1532,6 +1612,10 @@ export const ListTemplatesResponseItem = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -1580,6 +1664,10 @@ export const CreateTemplateBody = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -1596,6 +1684,10 @@ export const CreateTemplateBody = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -1611,6 +1703,10 @@ export const CreateTemplateBody = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -1653,6 +1749,10 @@ export const CreateTemplateResponse = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -1669,6 +1769,10 @@ export const CreateTemplateResponse = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -1684,6 +1788,10 @@ export const CreateTemplateResponse = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -1736,6 +1844,10 @@ export const GetTemplateResponse = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -1752,6 +1864,10 @@ export const GetTemplateResponse = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -1767,6 +1883,10 @@ export const GetTemplateResponse = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -1818,6 +1938,10 @@ export const UpdateTemplateBody = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -1834,6 +1958,10 @@ export const UpdateTemplateBody = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -1849,6 +1977,10 @@ export const UpdateTemplateBody = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -1891,6 +2023,10 @@ export const UpdateTemplateResponse = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -1907,6 +2043,10 @@ export const UpdateTemplateResponse = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()
@@ -1922,6 +2062,10 @@ export const UpdateTemplateResponse = zod.object({
   "movements": zod.object({
   "vertical": zod.number().nullish(),
   "sagittal": zod.number().nullish(),
+  "sagittalRight": zod.number().nullish(),
+  "sagittalLeft": zod.number().nullish(),
+  "verticalRight": zod.number().nullish(),
+  "verticalLeft": zod.number().nullish(),
   "transverseLeft": zod.number().nullish(),
   "transverseRight": zod.number().nullish(),
   "rotation": zod.number().nullish()

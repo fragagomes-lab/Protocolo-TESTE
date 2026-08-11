@@ -82,6 +82,14 @@ export interface OrthoMovements {
   /** @nullable */
   sagittal?: number | null;
   /** @nullable */
+  sagittalRight?: number | null;
+  /** @nullable */
+  sagittalLeft?: number | null;
+  /** @nullable */
+  verticalRight?: number | null;
+  /** @nullable */
+  verticalLeft?: number | null;
+  /** @nullable */
   transverseLeft?: number | null;
   /** @nullable */
   transverseRight?: number | null;

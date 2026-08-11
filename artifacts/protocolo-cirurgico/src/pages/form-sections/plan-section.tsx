@@ -106,35 +106,58 @@ export function PlanSection({ plan, updatePlan, isFinalized }: PlanSectionProps)
         </CardHeader>
         {plan.maxilla?.included && (
           <CardContent className="pt-6 space-y-6">
-            <div className="grid grid-cols-5 gap-4">
-              <MoveInput 
-                label="Avanço/Recuo (Sagital)" 
-                value={plan.maxilla.segments?.[0]?.movements?.sagittal} 
-                onChange={(v) => updateMaxillaMovements('sagittal', v)} 
-              />
-              <MoveInput 
-                label="Impacção/Descida (Vertical)" 
-                value={plan.maxilla.segments?.[0]?.movements?.vertical} 
-                onChange={(v) => updateMaxillaMovements('vertical', v)} 
-              />
-              <MoveInput 
-                label="Transverso Dir." 
-                value={plan.maxilla.segments?.[0]?.movements?.transverseRight} 
-                onChange={(v) => updateMaxillaMovements('transverseRight', v)} 
-                hint="− dta / + esq do doente"
-              />
-              <MoveInput 
-                label="Transverso Esq." 
-                value={plan.maxilla.segments?.[0]?.movements?.transverseLeft} 
-                onChange={(v) => updateMaxillaMovements('transverseLeft', v)} 
-                hint="− dta / + esq do doente"
-              />
-              <MoveInput 
-                label="Rotação (Yaw)" 
-                value={plan.maxilla.segments?.[0]?.movements?.rotation} 
-                onChange={(v) => updateMaxillaMovements('rotation', v)} 
-                unit="°"
-              />
+            {/* Convenção do cirurgião: Dir. = ENP/PNS, Esq. = ponto A (degrau das placas paranasais) */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Lado Direito — ENP (degrau da placa paranasal dta.)</Label>
+                <div className="grid grid-cols-3 gap-4">
+                  <MoveInput 
+                    label="Avanço/Recuo (Sagital)" 
+                    value={plan.maxilla.segments?.[0]?.movements?.sagittalRight ?? plan.maxilla.segments?.[0]?.movements?.sagittal} 
+                    onChange={(v) => updateMaxillaMovements('sagittalRight', v)} 
+                  />
+                  <MoveInput 
+                    label="Impacção/Descida (Vertical)" 
+                    value={plan.maxilla.segments?.[0]?.movements?.verticalRight ?? plan.maxilla.segments?.[0]?.movements?.vertical} 
+                    onChange={(v) => updateMaxillaMovements('verticalRight', v)} 
+                  />
+                  <MoveInput 
+                    label="Transverso Dir." 
+                    value={plan.maxilla.segments?.[0]?.movements?.transverseRight} 
+                    onChange={(v) => updateMaxillaMovements('transverseRight', v)} 
+                    hint="− dta / + esq do doente"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Lado Esquerdo — ponto A (degrau da placa paranasal esq.)</Label>
+                <div className="grid grid-cols-3 gap-4">
+                  <MoveInput 
+                    label="Avanço/Recuo (Sagital)" 
+                    value={plan.maxilla.segments?.[0]?.movements?.sagittalLeft ?? plan.maxilla.segments?.[0]?.movements?.sagittal} 
+                    onChange={(v) => updateMaxillaMovements('sagittalLeft', v)} 
+                  />
+                  <MoveInput 
+                    label="Impacção/Descida (Vertical)" 
+                    value={plan.maxilla.segments?.[0]?.movements?.verticalLeft ?? plan.maxilla.segments?.[0]?.movements?.vertical} 
+                    onChange={(v) => updateMaxillaMovements('verticalLeft', v)} 
+                  />
+                  <MoveInput 
+                    label="Transverso Esq." 
+                    value={plan.maxilla.segments?.[0]?.movements?.transverseLeft} 
+                    onChange={(v) => updateMaxillaMovements('transverseLeft', v)} 
+                    hint="− dta / + esq do doente"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <MoveInput 
+                  label="Rotação (Yaw)" 
+                  value={plan.maxilla.segments?.[0]?.movements?.rotation} 
+                  onChange={(v) => updateMaxillaMovements('rotation', v)} 
+                  unit="°"
+                />
+              </div>
             </div>
 
             {plan.maxilla.osteotomyType === 'segmented' && (

@@ -1007,6 +1007,11 @@ components:
       properties:
         vertical: { type: ["number", "null"] }
         sagittal: { type: ["number", "null"] }
+        # Convenção do cirurgião: valores por lado (dta=ENP/PNS, esq=A-Point) — degrau das placas paranasais
+        sagittalRight: { type: ["number", "null"] }
+        sagittalLeft: { type: ["number", "null"] }
+        verticalRight: { type: ["number", "null"] }
+        verticalLeft: { type: ["number", "null"] }
         transverseLeft: { type: ["number", "null"] }
         transverseRight: { type: ["number", "null"] }
         rotation: { type: ["number", "null"] }

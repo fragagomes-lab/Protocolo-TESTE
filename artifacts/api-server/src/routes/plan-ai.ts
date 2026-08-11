@@ -253,11 +253,9 @@ router.post("/protocols/:id/plan-ai/extract", async (req, res): Promise<void> =>
     }
 
     const fieldList = [
-      "maxilla.sagittal (mm, avanço + / recuo −)",
-      "maxilla.vertical (mm, impacção − / descida +)",
-      "maxilla.transverseRight (mm, − dta / + esq do doente)",
-      "maxilla.transverseLeft (mm, − dta / + esq do doente)",
-      "maxilla.transverse (mm — usa quando a imagem mostra UM único valor transversal/lateral sem distinção de lado)",
+      "maxilla.sagittalRight / maxilla.verticalRight / maxilla.transverseRight (mm — LADO DIREITO do maxilar, do landmark PNS/ENP)",
+      "maxilla.sagittalLeft / maxilla.verticalLeft / maxilla.transverseLeft (mm — LADO ESQUERDO do maxilar, do landmark A-Point)",
+      "maxilla.sagittal / maxilla.vertical / maxilla.transverse (mm — só se existir apenas um valor global sem lados)",
       "maxilla.rotation (graus, yaw)",
       "maxilla.segment.<nome> (para maxila segmentada: anterior, posterior_left, posterior_right — mesmos subcampos)",
       "mandible.sagittal (mm)", "mandible.vertical (mm)",
@@ -279,10 +277,12 @@ router.post("/protocols/:id/plan-ai/extract", async (req, res): Promise<void> =>
           `NÃO formules escolha de tratamento, NÃO proponhas movimentos diferentes, NÃO infiras valores ausentes, NÃO inventes texto. ` +
           `Se um valor estiver ilegível, ambíguo ou sem correspondência segura, marca undetermined=true e deixa value=null. ` +
           `Preserva o sinal e pelo menos duas casas decimais tal como legível. Campos possíveis: ${fieldList}.\n\n` +
-          `CONVENÇÃO DOLPHIN (Landmark Offset Tables): os campos dos módulos preenchem-se com os marcos ESQUELÉTICOS de referência — ` +
-          `maxila ← A-Point (coluna A-P/P- → maxilla.sagittal; Vert → maxilla.vertical; R-L/L-R → maxilla.transverse); ` +
-          `mandíbula ← B-Point (→ mandible.sagittal/vertical/transverse); ` +
-          `mento ← Pogonion ou movimento de genioplastia (→ chin.*). ` +
+          `CONVENÇÃO DESTE CIRURGIÃO (Landmark Offset Tables — segue-a SEMPRE, prevalece sobre o significado cefalométrico habitual): ` +
+          `PNS/ENP = avanço REAL do lado DIREITO do maxilar (degrau da placa paranasal dta.) → maxilla.sagittalRight (coluna A-P), maxilla.verticalRight (Vert), maxilla.transverseRight (R-L). ` +
+          `A-Point = lado ESQUERDO do maxilar (placa paranasal esq.) → maxilla.sagittalLeft / verticalLeft / transverseLeft. ` +
+          `B-Point = movimentos da MANDÍBULA → mandible.sagittal/vertical/transverse. ` +
+          `Pogonion = movimento sagital de mandíbula+mento SOMADOS: calcula chin.sagittal = Pogonion(A-P) − B-Point(A-P) e mostra a conta em note (ex.: "Pogónio +5.53 − B +4.00 = +1.53"); ` +
+          `faz o mesmo para chin.vertical e chin.transverse (Pogonion − B-Point, conta em note). Se existir um movimento de genioplastia explícito na lista de movimentos, esse prevalece sobre o cálculo. ` +
           `Usa a secção "(Model Block)"/movimento do bloco quando existir; caso contrário a secção geral. ` +
           `NÃO cries propostas individuais para offsets de marcos DENTÁRIOS (incisivos, caninos, cúspides U3/U6/L6, ANS, PNS, gonion, condylar points) — são redundantes para o plano; ` +
           `se algo dentário for excecionalmente relevante, resume-o numa única proposta "other" com note. ` +
