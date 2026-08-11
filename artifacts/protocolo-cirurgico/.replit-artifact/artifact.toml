@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Protocolo Cirúrgico Ortognático"
+description = "Sistema de gestão de protocolos cirúrgicos ortognáticos para a Clínica da Face. Permite criar, gerir e acompanhar protocolos de pacientes com cirurgia ortognática, incluindo templates, frases clínicas e informação clínica de referência."
+version = "1.0.0"
+id = "artifacts/protocolo-cirurgico"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18714
+
+[services.development]
+run = "pnpm --filter @workspace/protocolo-cirurgico run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/protocolo-cirurgico", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/protocolo-cirurgico/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18714"
+BASE_PATH = "/"

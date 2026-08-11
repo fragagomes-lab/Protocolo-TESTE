@@ -1,0 +1,1 @@
+- [Origem do projeto](project-origin.md) — app copiada do ZIP original "Protocolo Operatório"; sem autenticação e sem dados dos 548 protocolos originais.

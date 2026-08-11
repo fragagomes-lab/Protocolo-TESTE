@@ -1,45 +1,62 @@
-# [Project name]
+# Protocolo Cirúrgico Ortognático — Clínica da Face
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Aplicação web clínica para digitalização do protocolo operatório de cirurgia ortognática da Clínica da Face (Dr. Matos da Fonseca).
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- `pnpm --filter @workspace/protocolo-cirurgico run dev` — frontend (porta atribuída automaticamente)
+- `pnpm --filter @workspace/api-server run dev` — API server (porta 8080)
+- `pnpm run typecheck` — typecheck completo
+- `pnpm run build` — typecheck + build todos os pacotes
+- `pnpm --filter @workspace/api-spec run codegen` — regenerar hooks e schemas Zod a partir do OpenAPI spec
+- `pnpm --filter @workspace/db run push` — aplicar alterações ao schema (dev only)
+- Env obrigatória: `DATABASE_URL` — string de ligação PostgreSQL
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
+- Frontend: React + Vite, TanStack Query, wouter, shadcn/ui, Tailwind CSS, Framer Motion
 - API: Express 5
 - DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
+- Validação: Zod (`zod/v4`), `drizzle-zod`
+- API codegen: Orval (a partir do OpenAPI spec)
 - Build: esbuild (CJS bundle)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `lib/api-spec/openapi.yaml` — contrato OpenAPI (fonte de verdade)
+- `lib/api-client-react/src/generated/` — hooks React Query gerados
+- `lib/api-zod/src/generated/` — schemas Zod gerados
+- `lib/db/src/schema/` — schema Drizzle (protocols.ts, templates.ts, phrases.ts)
+- `artifacts/api-server/src/routes/` — rotas Express (protocols, templates, phrases)
+- `artifacts/protocolo-cirurgico/src/` — frontend React
+- `attached_assets/clinicadaface-logo.gif` — logótipo Clínica da Face
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- O protocolo completo é armazenado em colunas JSONB (team, checklist, preopDiagnosis, surgicalPlan, surgicalSequence, intraopRecord, materials) — evita normalização excessiva de dados clínicos altamente estruturados
+- A geração automática da descrição operatória é feita server-side a partir dos dados estruturados do protocolo
+- Rotas `/protocols/stats` e `/protocols/recent` antes das rotas com parâmetro `/:id` para evitar colisões no router Express 5
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Dashboard com estatísticas e protocolos recentes
+- Lista de protocolos com pesquisa e filtros
+- Formulário multi-step (5 passos): Identificação → Checklist/Diagnóstico → Plano Cirúrgico → Registo Intra-op → Descrição Operatória
+- Plano cirúrgico modular: maxila (LeFort I/II/III), mandíbula (BSSO), mento (genioplastia), procedimentos associados
+- Movimentos em milímetros por segmento
+- Materiais de osteossíntese: placas, parafusos, brocas, serras
+- Biblioteca de frases clínicas editável e reutilizável
+- Geração automática de descrição operatória coerente
+- Templates pré-configurados por tipo de cirurgia (Bimaxilar, LeFort I, BSSO)
+- Duplicação de protocolos e visualização para impressão/PDF
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+_Preservar identidade visual da Clínica da Face: cores teal (#2D6B79), tipografia Roboto, cantos retos, sidebar escura._
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
-
-## Pointers
-
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- Rotas de estatísticas (`/protocols/stats`, `/protocols/recent`) devem ficar ANTES da rota genérica `/:id` no router Express 5
+- Google Fonts `@import url(...)` deve ser a primeira linha do index.css, antes de `@import "tailwindcss"`
+- Correr `pnpm run typecheck:libs` após mudanças em `lib/*` antes dos checks de artefactos leaf

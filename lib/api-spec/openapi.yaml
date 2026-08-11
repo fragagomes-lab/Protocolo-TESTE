@@ -3,20 +3,30 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Protocolo Cirúrgico Ortognático — Clínica da Face
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: protocols
+    description: Surgical protocols
+  - name: templates
+    description: Surgery templates
+  - name: phrases
+    description: Clinical phrase library
+  - name: planning
+    description: Virtual 3D planning images
+  - name: storage
+    description: Object storage upload and serving endpoints
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +34,835 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /protocols:
+    get:
+      operationId: listProtocols
+      tags: [protocols]
+      summary: List all protocols
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: surgeryType
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of protocols
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProtocolSummary"
+    post:
+      operationId: createProtocol
+      tags: [protocols]
+      summary: Create a new protocol
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProtocolInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Protocol"
+
+  /protocols/stats:
+    get:
+      operationId: getProtocolStats
+      tags: [protocols]
+      summary: Dashboard statistics
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProtocolStats"
+
+  /protocols/recent:
+    get:
+      operationId: getRecentProtocols
+      tags: [protocols]
+      summary: Most recently updated protocols
+      responses:
+        "200":
+          description: Recent protocols
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProtocolSummary"
+
+  /protocols/{id}:
+    get:
+      operationId: getProtocol
+      tags: [protocols]
+      summary: Get a protocol by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Protocol
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Protocol"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    patch:
+      operationId: updateProtocol
+      tags: [protocols]
+      summary: Update a protocol
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProtocolUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Protocol"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      operationId: deleteProtocol
+      tags: [protocols]
+      summary: Delete a protocol
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /protocols/{id}/duplicate:
+    post:
+      operationId: duplicateProtocol
+      tags: [protocols]
+      summary: Duplicate a protocol
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "201":
+          description: Duplicated protocol
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Protocol"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /protocols/{id}/generate-description:
+    post:
+      operationId: generateOperativeDescription
+      tags: [protocols]
+      summary: Auto-generate operative description from protocol data
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Generated description
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeneratedDescription"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /templates:
+    get:
+      operationId: listTemplates
+      tags: [templates]
+      summary: List surgery templates
+      responses:
+        "200":
+          description: Templates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Template"
+    post:
+      operationId: createTemplate
+      tags: [templates]
+      summary: Create a surgery template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TemplateInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Template"
+
+  /templates/{id}:
+    get:
+      operationId: getTemplate
+      tags: [templates]
+      summary: Get a template
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Template
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Template"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    patch:
+      operationId: updateTemplate
+      tags: [templates]
+      summary: Update a template
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TemplateUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Template"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      operationId: deleteTemplate
+      tags: [templates]
+      summary: Delete a template
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /phrases:
+    get:
+      operationId: listPhrases
+      tags: [phrases]
+      summary: List clinical phrases
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Phrases
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Phrase"
+    post:
+      operationId: createPhrase
+      tags: [phrases]
+      summary: Create a clinical phrase
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PhraseInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Phrase"
+
+  /storage/uploads/request-url:
+    post:
+      tags: [storage]
+      operationId: requestUploadUrl
+      summary: Request a presigned URL for file upload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadUrlRequest"
+      responses:
+        "200":
+          description: Presigned upload URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadUrlResponse"
+        "400":
+          description: Invalid fields
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Failed to generate URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /storage/objects/{objectPath}:
+    get:
+      tags: [storage]
+      operationId: getStorageObject
+      summary: Serve a stored object
+      parameters:
+        - name: objectPath
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Object binary content
+          content:
+            "*/*":
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /protocols/{id}/planning-images:
+    get:
+      operationId: listPlanningImages
+      tags: [planning]
+      summary: List planning images for a protocol
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Planning images
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlanningImage"
+        "404":
+          description: Protocol not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      operationId: createPlanningImage
+      tags: [planning]
+      summary: Register a planning image after upload
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanningImageInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanningImage"
+        "404":
+          description: Protocol not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /protocols/{id}/planning-images/reorder:
+    post:
+      operationId: reorderPlanningImages
+      tags: [planning]
+      summary: Reorder planning images
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReorderInput"
+      responses:
+        "200":
+          description: Reordered
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlanningImage"
+
+  /protocols/{id}/planning-images/{imageId}:
+    patch:
+      operationId: updatePlanningImage
+      tags: [planning]
+      summary: Update caption, category or order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: imageId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanningImageUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanningImage"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      operationId: deletePlanningImage
+      tags: [planning]
+      summary: Delete a planning image
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: imageId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /phrases/{id}:
+    patch:
+      operationId: updatePhrase
+      tags: [phrases]
+      summary: Update a clinical phrase
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PhraseUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Phrase"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      operationId: deletePhrase
+      tags: [phrases]
+      summary: Delete a clinical phrase
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /protocols/{id}/files-3d:
+    get:
+      operationId: listFiles3d
+      tags: [files3d]
+      summary: List 3D files for a protocol
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: 3D files
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/File3d"
+        "404":
+          description: Protocol not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      operationId: createFile3d
+      tags: [files3d]
+      summary: Register a 3D file after upload
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/File3dInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/File3d"
+        "404":
+          description: Protocol not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /protocols/{id}/files-3d/reorder:
+    post:
+      operationId: reorderFiles3d
+      tags: [files3d]
+      summary: Reorder 3D files
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReorderInput"
+      responses:
+        "200":
+          description: Reordered
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/File3d"
+
+  /protocols/{id}/files-3d/{fileId}:
+    patch:
+      operationId: updateFile3d
+      tags: [files3d]
+      summary: Update 3D file metadata
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/File3dUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/File3d"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      operationId: deleteFile3d
+      tags: [files3d]
+      summary: Delete a 3D file
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /plate-catalog:
+    get:
+      operationId: listPlateCatalog
+      tags: [catalog]
+      summary: List plate catalogue entries
+      parameters:
+        - name: manufacturer
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Catalogue entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlateCatalogEntry"
+    post:
+      operationId: createPlateCatalogEntry
+      tags: [catalog]
+      summary: Create a plate catalogue entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlateCatalogInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlateCatalogEntry"
+
+  /plate-catalog/{entryId}:
+    patch:
+      operationId: updatePlateCatalogEntry
+      tags: [catalog]
+      summary: Update a plate catalogue entry
+      parameters:
+        - name: entryId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlateCatalogUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlateCatalogEntry"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      operationId: deletePlateCatalogEntry
+      tags: [catalog]
+      summary: Delete a plate catalogue entry
+      parameters:
+        - name: entryId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +873,779 @@ components:
       required:
         - status
 
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    # ─── Protocol schemas ───────────────────────────────────────
+
+    SurgicalTeam:
+      type: object
+      properties:
+        surgeon: { type: string }
+        firstAssistant: { type: string }
+        secondAssistant: { type: string }
+        instrumentist: { type: string }
+        anesthesiologist: { type: string }
+        scrubNurse: { type: string }
+        perfusionist: { type: string }
+
+    ChecklistItem:
+      type: object
+      required: [item, status]
+      properties:
+        item: { type: string }
+        status:
+          type: string
+          enum: [ok, missing, na]
+        notes: { type: string }
+
+    PreopDiagnosis:
+      type: object
+      properties:
+        skeletalClass:
+          type: string
+          enum: [I, II, III, ""]
+        verticalPattern:
+          type: string
+          enum: [normodivergent, hyperdivergent, hypodivergent, ""]
+        maxillaryPosition: { type: string }
+        mandibularPosition: { type: string }
+        facialAsymmetry: { type: boolean }
+        asymmetryDetails: { type: string }
+        openBite: { type: boolean }
+        crossBite: { type: boolean }
+        crowding: { type: boolean }
+        overbite: { type: number }
+        overjet: { type: number }
+        airwayCompromise: { type: boolean }
+        tmjSymptoms: { type: boolean }
+        additionalNotes: { type: string }
+
+    OrthoMovements:
+      type: object
+      properties:
+        vertical: { type: ["number", "null"] }
+        sagittal: { type: ["number", "null"] }
+        transverseLeft: { type: ["number", "null"] }
+        transverseRight: { type: ["number", "null"] }
+        rotation: { type: ["number", "null"] }
+
+    MaxillaSegment:
+      type: object
+      properties:
+        segment:
+          type: string
+          enum: [total, anterior, posterior_left, posterior_right, left, right]
+        movements:
+          $ref: "#/components/schemas/OrthoMovements"
+
+    MaxillaPlan:
+      type: object
+      properties:
+        included: { type: boolean }
+        osteotomyType:
+          type: string
+          enum: [LeFort_I, LeFort_II, LeFort_III, segmented, expansion, SARPE, ""]
+        segments:
+          type: array
+          items:
+            $ref: "#/components/schemas/MaxillaSegment"
+        bonGraft: { type: boolean }
+        graftSource: { type: string }
+        fixation: { type: string }
+        notes: { type: string }
+
+    MandiblePlan:
+      type: object
+      properties:
+        included: { type: boolean }
+        osteotomyType:
+          type: string
+          enum: [BSSO, vertical_ramus, intraoral_vertical_ramus, genioplasty_only, distraction, ""]
+        movements:
+          $ref: "#/components/schemas/OrthoMovements"
+        rigidFixation: { type: boolean }
+        fixationType: { type: string }
+        condylarPositioning: { type: string }
+        notes: { type: string }
+
+    ChinPlan:
+      type: object
+      properties:
+        included: { type: boolean }
+        procedure:
+          type: string
+          enum: [advancement, setback, vertical_reduction, vertical_augmentation, asymmetry_correction, ""]
+        movements:
+          $ref: "#/components/schemas/OrthoMovements"
+        notes: { type: string }
+
+    AssociatedProcedure:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        details: { type: string }
+        side:
+          type: string
+          enum: [bilateral, left, right, central, ""]
+
+    SurgicalPlan:
+      type: object
+      properties:
+        maxilla:
+          $ref: "#/components/schemas/MaxillaPlan"
+        mandible:
+          $ref: "#/components/schemas/MandiblePlan"
+        chin:
+          $ref: "#/components/schemas/ChinPlan"
+        associated:
+          type: array
+          items:
+            $ref: "#/components/schemas/AssociatedProcedure"
+
+    SurgicalSequenceStep:
+      type: object
+      required: [order, description]
+      properties:
+        order: { type: integer }
+        description: { type: string }
+        startTime: { type: ["string", "null"] }
+        endTime: { type: ["string", "null"] }
+        notes: { type: string }
+
+    IntraopComplication:
+      type: object
+      required: [description]
+      properties:
+        description: { type: string }
+        action: { type: string }
+        severity:
+          type: string
+          enum: [minor, moderate, major]
+
+    IntraopRecord:
+      type: object
+      properties:
+        surgeryStartTime: { type: ["string", "null"] }
+        surgeryEndTime: { type: ["string", "null"] }
+        anesthesiaStartTime: { type: ["string", "null"] }
+        anesthesiaEndTime: { type: ["string", "null"] }
+        estimatedBloodLoss: { type: ["number", "null"] }
+        fluidAdministered: { type: ["number", "null"] }
+        complications:
+          type: array
+          items:
+            $ref: "#/components/schemas/IntraopComplication"
+        generalNotes: { type: string }
+
+    ScrewRecord:
+      type: object
+      properties:
+        screwType:
+          type: string
+          enum: [monocortical, bicortical, lag, positional, ""]
+        selfTapping: { type: boolean }
+        diameter:
+          type: string
+          enum: ["1.5", "2.0", "2.4", "outro", ""]
+        length: { type: integer }
+        lengthCustom: { type: number }
+        quantity: { type: integer }
+        reference: { type: string }
+        lot: { type: string }
+        location: { type: string }
+
+    DrillRecord:
+      type: object
+      properties:
+        brand: { type: string }
+        diameter: { type: string }
+        drillType:
+          type: string
+          enum: [twist, step, ""]
+        reference: { type: string }
+        usedCount: { type: integer }
+
+    SawRecord:
+      type: object
+      properties:
+        brand: { type: string }
+        sawType:
+          type: string
+          enum: [oscillating, sagittal, reciprocating, ""]
+        bladeRef: { type: string }
+        usedCount: { type: integer }
+
+    PlateRecord:
+      type: object
+      properties:
+        plateType:
+          type: string
+          enum: [L_left_4h, L_right_4h, L_left_6h, L_right_6h, BSSO_right, BSSO_left, square, chin, straight, custom, ""]
+        brand: { type: string }
+        system:
+          type: string
+          enum: ["1.5mm", "2.0mm", "2.4mm", ""]
+        reference: { type: string }
+        lot: { type: string }
+        anatomicalZone:
+          type: string
+          enum: [pilar_canino_dir, pilar_canino_esq, pilar_zigomatico_dir, pilar_zigomatico_esq, bordo_inf_dir, bordo_inf_esq, bordo_ant_dir, bordo_ant_esq, mento, custom, ""]
+        side:
+          type: string
+          enum: [right, left, bilateral, central, ""]
+        location: { type: string }
+        quantity: { type: integer }
+        notes: { type: string }
+        screws:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScrewRecord"
+        # Legacy fields kept for backward compatibility
+        type: { type: string }
+        screwCount: { type: integer }
+        screwSize: { type: string }
+
+    OsteosynthesisMaterials:
+      type: object
+      properties:
+        plates:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlateRecord"
+        additionalScrews:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScrewRecord"
+        drills:
+          type: array
+          items:
+            $ref: "#/components/schemas/DrillRecord"
+        saws:
+          type: array
+          items:
+            $ref: "#/components/schemas/SawRecord"
+        otherMaterials:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              quantity: { type: integer }
+              notes: { type: string }
+
+    PiezoEquipment:
+      type: object
+      properties:
+        brand:
+          type: string
+          enum: [wh, mectron, outro, nao_utilizado, ""]
+        model: { type: string }
+        tip: { type: string }
+        serial: { type: string }
+        notes: { type: string }
+
+    ProtocolSummary:
+      type: object
+      required: [id, processNumber, patientName, surgeryType, status, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        processNumber: { type: string }
+        patientName: { type: string }
+        patientDOB: { type: ["string", "null"] }
+        surgeryDate: { type: ["string", "null"] }
+        surgeryType: { type: string }
+        status:
+          type: string
+          enum: [draft, preop_complete, intraop_complete, finalized]
+        surgeon: { type: ["string", "null"] }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+
+    Protocol:
+      type: object
+      required: [id, processNumber, patientName, surgeryType, status, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        processNumber: { type: string }
+        patientName: { type: string }
+        patientDOB: { type: ["string", "null"] }
+        patientAge: { type: ["integer", "null"] }
+        patientGender:
+          type: ["string", "null"]
+          enum: [M, F, null]
+        surgeryDate: { type: ["string", "null"] }
+        surgeryType: { type: string }
+        status:
+          type: string
+          enum: [draft, preop_complete, intraop_complete, finalized]
+        team:
+          $ref: "#/components/schemas/SurgicalTeam"
+        checklist:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChecklistItem"
+        preopDiagnosis:
+          $ref: "#/components/schemas/PreopDiagnosis"
+        surgicalPlan:
+          $ref: "#/components/schemas/SurgicalPlan"
+        surgicalSequence:
+          type: array
+          items:
+            $ref: "#/components/schemas/SurgicalSequenceStep"
+        intraopRecord:
+          $ref: "#/components/schemas/IntraopRecord"
+        materials:
+          $ref: "#/components/schemas/OsteosynthesisMaterials"
+        piezoEquipment:
+          $ref: "#/components/schemas/PiezoEquipment"
+        surgicalDiagrams:
+          $ref: "#/components/schemas/SurgicalDiagrams"
+        operativeDescription: { type: string }
+        postopNotes: { type: string }
+        reopenHistory:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReopenEvent"
+        createdAt: { type: string }
+        updatedAt: { type: string }
+
+    ReopenEvent:
+      type: object
+      required: [reopenedAt]
+      properties:
+        reopenedAt: { type: string }
+        reopenedBy: { type: ["string", "null"] }
+
+    ProtocolInput:
+      type: object
+      required: [processNumber, patientName, surgeryType]
+      properties:
+        processNumber: { type: string }
+        patientName: { type: string }
+        patientDOB: { type: string }
+        patientAge: { type: integer }
+        patientGender:
+          type: string
+          enum: [M, F]
+        surgeryDate: { type: string }
+        surgeryType: { type: string }
+        status:
+          type: string
+          enum: [draft, preop_complete, intraop_complete, finalized]
+        team:
+          $ref: "#/components/schemas/SurgicalTeam"
+        checklist:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChecklistItem"
+        preopDiagnosis:
+          $ref: "#/components/schemas/PreopDiagnosis"
+        surgicalPlan:
+          $ref: "#/components/schemas/SurgicalPlan"
+        surgicalSequence:
+          type: array
+          items:
+            $ref: "#/components/schemas/SurgicalSequenceStep"
+        intraopRecord:
+          $ref: "#/components/schemas/IntraopRecord"
+        materials:
+          $ref: "#/components/schemas/OsteosynthesisMaterials"
+        piezoEquipment:
+          $ref: "#/components/schemas/PiezoEquipment"
+        surgicalDiagrams:
+          $ref: "#/components/schemas/SurgicalDiagrams"
+        operativeDescription: { type: string }
+        postopNotes: { type: string }
+
+    ProtocolUpdate:
+      type: object
+      properties:
+        processNumber: { type: string }
+        patientName: { type: string }
+        patientDOB: { type: string }
+        patientAge: { type: integer }
+        patientGender:
+          type: string
+          enum: [M, F]
+        surgeryDate: { type: string }
+        surgeryType: { type: string }
+        status:
+          type: string
+          enum: [draft, preop_complete, intraop_complete, finalized]
+        team:
+          $ref: "#/components/schemas/SurgicalTeam"
+        checklist:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChecklistItem"
+        preopDiagnosis:
+          $ref: "#/components/schemas/PreopDiagnosis"
+        surgicalPlan:
+          $ref: "#/components/schemas/SurgicalPlan"
+        surgicalSequence:
+          type: array
+          items:
+            $ref: "#/components/schemas/SurgicalSequenceStep"
+        intraopRecord:
+          $ref: "#/components/schemas/IntraopRecord"
+        materials:
+          $ref: "#/components/schemas/OsteosynthesisMaterials"
+        piezoEquipment:
+          $ref: "#/components/schemas/PiezoEquipment"
+        surgicalDiagrams:
+          $ref: "#/components/schemas/SurgicalDiagrams"
+        operativeDescription: { type: string }
+        postopNotes: { type: string }
+        # Only honored on the un-finalize transition: names the clinician who
+        # reopened a finalized report. Ignored on all other updates.
+        reopenedBy: { type: ["string", "null"] }
+
+    DiagramStroke:
+      type: object
+      properties:
+        color: { type: string }
+        width: { type: number }
+        d: { type: string }
+    DiagramAnnotation:
+      type: object
+      properties:
+        lines:
+          type: object
+          additionalProperties: { type: boolean }
+        strokes:
+          type: array
+          items:
+            $ref: "#/components/schemas/DiagramStroke"
+        includeInPdf: { type: boolean }
+    SurgicalDiagrams:
+      type: object
+      properties:
+        frontal:
+          $ref: "#/components/schemas/DiagramAnnotation"
+        lateral:
+          $ref: "#/components/schemas/DiagramAnnotation"
+        occlusion:
+          $ref: "#/components/schemas/DiagramAnnotation"
+        molar:
+          $ref: "#/components/schemas/DiagramAnnotation"
+
+    ProtocolStats:
+      type: object
+      required: [total, byStatus, bySurgeryType]
+      properties:
+        total: { type: integer }
+        byStatus:
+          type: object
+          properties:
+            draft: { type: integer }
+            preop_complete: { type: integer }
+            intraop_complete: { type: integer }
+            finalized: { type: integer }
+        bySurgeryType:
+          type: array
+          items:
+            type: object
+            required: [surgeryType, count]
+            properties:
+              surgeryType: { type: string }
+              count: { type: integer }
+        recentCount: { type: integer }
+
+    GeneratedDescription:
+      type: object
+      required: [description]
+      properties:
+        description: { type: string }
+
+    # ─── Template schemas ───────────────────────────────────────
+
+    Template:
+      type: object
+      required: [id, name, surgeryType, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        surgeryType: { type: string }
+        description: { type: string }
+        checklist:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChecklistItem"
+        surgicalPlan:
+          $ref: "#/components/schemas/SurgicalPlan"
+        surgicalSequence:
+          type: array
+          items:
+            $ref: "#/components/schemas/SurgicalSequenceStep"
+        isDefault: { type: boolean }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+
+    TemplateInput:
+      type: object
+      required: [name, surgeryType]
+      properties:
+        name: { type: string }
+        surgeryType: { type: string }
+        description: { type: string }
+        checklist:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChecklistItem"
+        surgicalPlan:
+          $ref: "#/components/schemas/SurgicalPlan"
+        surgicalSequence:
+          type: array
+          items:
+            $ref: "#/components/schemas/SurgicalSequenceStep"
+        isDefault: { type: boolean }
+
+    TemplateUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        surgeryType: { type: string }
+        description: { type: string }
+        checklist:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChecklistItem"
+        surgicalPlan:
+          $ref: "#/components/schemas/SurgicalPlan"
+        surgicalSequence:
+          type: array
+          items:
+            $ref: "#/components/schemas/SurgicalSequenceStep"
+        isDefault: { type: boolean }
+
+    # ─── Phrase schemas ─────────────────────────────────────────
+
+    Phrase:
+      type: object
+      required: [id, category, text, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        category: { type: string }
+        subcategory: { type: string }
+        text: { type: string }
+        isCustom: { type: boolean }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+
+    # ─── Storage schemas ────────────────────────────────────────
+
+    UploadUrlRequest:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name: { type: string, minLength: 1 }
+        size: { type: integer, minimum: 1 }
+        contentType: { type: string, minLength: 1 }
+
+    UploadUrlResponse:
+      type: object
+      required: [uploadURL, objectPath]
+      properties:
+        uploadURL: { type: string }
+        objectPath: { type: string }
+        metadata:
+          $ref: "#/components/schemas/UploadUrlRequest"
+
+    # ─── Planning image schemas ──────────────────────────────────
+
+    PlanningImage:
+      type: object
+      required: [id, protocolId, objectPath, servingUrl, category, displayOrder, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        protocolId: { type: integer }
+        objectPath: { type: string }
+        servingUrl: { type: string }
+        originalName: { type: ["string", "null"] }
+        caption: { type: ["string", "null"] }
+        category:
+          type: string
+          enum: [foto_extraoral, foto_intraoral, foto_clinica_outra, fotografias_clinicas, cefalometria, renders_3d, tecidos_moles, osteotomias, movimentos_osseos, splints_guias, comparacao_pre_pos, outros]
+        phase: { type: ["string", "null"] }
+        captureDate: { type: ["string", "null"] }
+        isHeaderPhoto: { type: boolean }
+        displayOrder: { type: integer }
+        includeInPdf: { type: boolean }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+
+    PlanningImageInput:
+      type: object
+      required: [objectPath, servingUrl, category]
+      properties:
+        objectPath: { type: string }
+        servingUrl: { type: string }
+        originalName: { type: string }
+        caption: { type: string }
+        category:
+          type: string
+          enum: [foto_extraoral, foto_intraoral, foto_clinica_outra, fotografias_clinicas, cefalometria, renders_3d, tecidos_moles, osteotomias, movimentos_osseos, splints_guias, comparacao_pre_pos, outros]
+        phase: { type: string }
+        captureDate: { type: string }
+        isHeaderPhoto: { type: boolean }
+        displayOrder: { type: integer }
+        includeInPdf: { type: boolean }
+
+    PlanningImageUpdate:
+      type: object
+      properties:
+        caption: { type: string }
+        category:
+          type: string
+          enum: [foto_extraoral, foto_intraoral, foto_clinica_outra, fotografias_clinicas, cefalometria, renders_3d, tecidos_moles, osteotomias, movimentos_osseos, splints_guias, comparacao_pre_pos, outros]
+        phase: { type: string }
+        captureDate: { type: string }
+        isHeaderPhoto: { type: boolean }
+        displayOrder: { type: integer }
+        includeInPdf: { type: boolean }
+
+    # ─── 3D file schemas ─────────────────────────────────────────
+
+    File3d:
+      type: object
+      required: [id, protocolId, objectPath, servingUrl, fileFormat, fileType, displayOrder, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        protocolId: { type: integer }
+        objectPath: { type: string }
+        servingUrl: { type: string }
+        originalName: { type: ["string", "null"] }
+        fileFormat:
+          type: string
+          enum: [stl, ply]
+        fileType:
+          type: string
+          enum: [scanner_intraoral, modelo_dentario, maxila, mandibula, cranio, splint, guia_cirurgica, outro]
+        origin: { type: ["string", "null"] }
+        fileDate: { type: ["string", "null"] }
+        version: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+        displayOrder: { type: integer }
+        includeInPdf: { type: boolean }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+
+    File3dInput:
+      type: object
+      required: [objectPath, servingUrl, fileFormat, fileType]
+      properties:
+        objectPath: { type: string }
+        servingUrl: { type: string }
+        originalName: { type: string }
+        fileFormat:
+          type: string
+          enum: [stl, ply]
+        fileType:
+          type: string
+          enum: [scanner_intraoral, modelo_dentario, maxila, mandibula, cranio, splint, guia_cirurgica, outro]
+        origin: { type: string }
+        fileDate: { type: string }
+        version: { type: string }
+        notes: { type: string }
+        displayOrder: { type: integer }
+        includeInPdf: { type: boolean }
+
+    File3dUpdate:
+      type: object
+      properties:
+        fileType:
+          type: string
+          enum: [scanner_intraoral, modelo_dentario, maxila, mandibula, cranio, splint, guia_cirurgica, outro]
+        origin: { type: string }
+        fileDate: { type: string }
+        version: { type: string }
+        notes: { type: string }
+        displayOrder: { type: integer }
+        includeInPdf: { type: boolean }
+
+    # ─── Plate catalogue schemas ─────────────────────────────────
+
+    PlateCatalogEntry:
+      type: object
+      required: [id, manufacturer, reference, active, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        manufacturer:
+          type: string
+          enum: [osteomed, delphos, outro]
+        system: { type: ["string", "null"] }
+        plateType: { type: ["string", "null"] }
+        geometry: { type: ["string", "null"] }
+        side: { type: ["string", "null"] }
+        region: { type: ["string", "null"] }
+        reference: { type: string }
+        screwInfo: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+        active: { type: boolean }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+
+    PlateCatalogInput:
+      type: object
+      required: [manufacturer, reference]
+      properties:
+        manufacturer:
+          type: string
+          enum: [osteomed, delphos, outro]
+        system: { type: string }
+        plateType: { type: string }
+        geometry: { type: string }
+        side: { type: string }
+        region: { type: string }
+        reference: { type: string }
+        screwInfo: { type: string }
+        notes: { type: string }
+        active: { type: boolean }
+
+    PlateCatalogUpdate:
+      type: object
+      properties:
+        manufacturer:
+          type: string
+          enum: [osteomed, delphos, outro]
+        system: { type: string }
+        plateType: { type: string }
+        geometry: { type: string }
+        side: { type: string }
+        region: { type: string }
+        reference: { type: string }
+        screwInfo: { type: string }
+        notes: { type: string }
+        active: { type: boolean }
+
+    ReorderInput:
+      type: object
+      required: [orderedIds]
+      properties:
+        orderedIds:
+          type: array
+          items:
+            type: integer
+
+    PhraseInput:
+      type: object
+      required: [category, text]
+      properties:
+        category: { type: string }
+        subcategory: { type: string }
+        text: { type: string }
+        isCustom: { type: boolean }
+
+    PhraseUpdate:
+      type: object
+      properties:
+        category: { type: string }
+        subcategory: { type: string }
+        text: { type: string }
