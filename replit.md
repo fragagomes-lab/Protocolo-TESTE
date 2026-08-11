@@ -60,3 +60,10 @@ _Preservar identidade visual da Clínica da Face: cores teal (#2D6B79), tipograf
 - Rotas de estatísticas (`/protocols/stats`, `/protocols/recent`) devem ficar ANTES da rota genérica `/:id` no router Express 5
 - Google Fonts `@import url(...)` deve ser a primeira linha do index.css, antes de `@import "tailwindcss"`
 - Correr `pnpm run typecheck:libs` após mudanças em `lib/*` antes dos checks de artefactos leaf
+
+## Integração de IA (análise do planeamento)
+- Fornecedor: OpenAI via **Replit AI Integrations** (proxy da Replit; sem chave própria; consumo cobrado nos créditos da conta Replit do utilizador).
+- Modelos ativos (configuráveis por env var, com predefinições em `artifacts/api-server/src/routes/plan-ai.ts`):
+  - 1ª fase — classificação de imagens: `PLAN_AI_CLASSIFY_MODEL` (predefinição: `gpt-5.6-luna`, económico)
+  - 2ª fase — extração de medidas + sugestão diagnóstica: `PLAN_AI_EXTRACT_MODEL` (predefinição: `gpt-5.6-terra`, multimodal mais capaz)
+- A IA nunca corre automaticamente; resultados são guardados e reutilizados; repetir análises pede confirmação (custos).

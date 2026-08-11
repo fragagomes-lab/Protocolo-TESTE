@@ -10,8 +10,9 @@ const router: IRouter = Router();
 const storage = new ObjectStorageService();
 
 // ── AI client (Replit AI Integrations proxy). Nunca expor a chave. ──
-const CLASSIFY_MODEL = "gpt-5.6-luna"; // barato — 1.ª fase
-const EXTRACT_MODEL = "gpt-5.6-terra"; // capaz — 2.ª fase
+// Modelos configuráveis por variável de ambiente (com predefinições sensatas)
+const CLASSIFY_MODEL = process.env.PLAN_AI_CLASSIFY_MODEL || "gpt-5.6-luna"; // barato — 1.ª fase
+const EXTRACT_MODEL = process.env.PLAN_AI_EXTRACT_MODEL || "gpt-5.6-terra"; // capaz — 2.ª fase
 
 function getAiClient(): OpenAI | null {
   const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
@@ -174,6 +175,13 @@ router.post("/protocols/:id/plan-ai/classify", async (req, res): Promise<void> =
         .where(and(eq(planningImagesTable.id, imageId), eq(planningImagesTable.protocolId, id)));
     }
 
+    // Auditoria: arquivar a classificação anterior em vez de a destruir
+    if (analysis.classification) {
+      (analysis as any).archivedClassifications = [
+        ...(((analysis as any).archivedClassifications as unknown[]) ?? []),
+        { archivedAt: new Date().toISOString(), classification: analysis.classification },
+      ];
+    }
     analysis.classification = {
       at: new Date().toISOString(),
       model: CLASSIFY_MODEL,
@@ -222,9 +230,14 @@ router.post("/protocols/:id/plan-ai/extract", async (req, res): Promise<void> =>
     .select()
     .from(planningImagesTable)
     .where(and(eq(planningImagesTable.protocolId, id), inArray(planningImagesTable.id, imageIds)));
-  const confirmed = rows.filter((r) => r.isFinalMeasurement === true && !isPdf(r));
+  if (rows.length !== imageIds.length) {
+    res.status(400).json({ error: "invalid_images", message: "Uma ou mais imagens indicadas não pertencem a este protocolo." });
+    return;
+  }
+  // A seleção gravada pelo cirurgião é a autoridade — não o pedido do cliente.
+  const confirmed = rows.filter((r) => r.isFinalMeasurement === true && r.selectedForExtraction === true && !isPdf(r));
   if (confirmed.length === 0) {
-    res.status(400).json({ error: "none_confirmed", message: "Nenhuma das imagens selecionadas está confirmada como contendo medidas finais." });
+    res.status(400).json({ error: "none_confirmed", message: "Nenhuma das imagens selecionadas está confirmada como medidas finais e marcada para pré-preenchimento." });
     return;
   }
 
@@ -289,6 +302,13 @@ router.post("/protocols/:id/plan-ai/extract", async (req, res): Promise<void> =>
     };
 
     const now = new Date().toISOString();
+    // Auditoria: nunca destruir resultados anteriores — arquivar antes de substituir
+    if (analysis.extraction || analysis.diagnosis) {
+      (analysis as any).archivedRuns = [
+        ...(((analysis as any).archivedRuns as unknown[]) ?? []),
+        { archivedAt: now, extraction: analysis.extraction ?? null, diagnosis: analysis.diagnosis ?? null },
+      ];
+    }
     analysis.extraction = {
       at: now,
       model: EXTRACT_MODEL,

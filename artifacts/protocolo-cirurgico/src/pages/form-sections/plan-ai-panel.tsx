@@ -486,7 +486,13 @@ export function AiProposalsReview({
                   <CheckCircle2 className="mr-1 h-3 w-3" /> Confirmação global
                 </Button>
               )}
-              <Button size="sm" disabled={proposals.every((p) => !p.review || p.review.status === "rejected")} onClick={applyToPlan} className="text-xs uppercase tracking-widest">
+              <Button
+                size="sm"
+                disabled={!reviewComplete || proposals.every((p) => !p.review || p.review.status === "rejected")}
+                title={!reviewComplete ? "Disponível apenas após a confirmação global" : undefined}
+                onClick={applyToPlan}
+                className="text-xs uppercase tracking-widest"
+              >
                 Aplicar confirmados ao plano
               </Button>
             </div>
