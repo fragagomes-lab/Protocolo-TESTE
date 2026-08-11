@@ -478,6 +478,8 @@ export interface SurgicalDiagrams {
   molar?: DiagramAnnotation;
 }
 
+export interface PlanAiAnalysis { [key: string]: unknown }
+
 export interface ReopenEvent {
   reopenedAt: string;
   /** @nullable */
@@ -509,6 +511,7 @@ export interface Protocol {
   surgicalDiagrams?: SurgicalDiagrams;
   operativeDescription?: string;
   postopNotes?: string;
+  planAiAnalysis?: PlanAiAnalysis;
   reopenHistory?: ReopenEvent[];
   createdAt: string;
   updatedAt: string;
@@ -712,6 +715,15 @@ export interface PlanningImage {
   isHeaderPhoto?: boolean;
   displayOrder: number;
   includeInPdf?: boolean;
+  /** @nullable */
+  aiClassification?: string | null;
+  /** @nullable */
+  aiClassificationReason?: string | null;
+  /** @nullable */
+  isFinalMeasurement?: boolean | null;
+  selectedForExtraction?: boolean;
+  /** @nullable */
+  contentHash?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -773,7 +785,21 @@ export interface PlanningImageUpdate {
   isHeaderPhoto?: boolean;
   displayOrder?: number;
   includeInPdf?: boolean;
+  /** @nullable */
+  isFinalMeasurement?: boolean | null;
+  selectedForExtraction?: boolean;
 }
+
+export interface PlanAiExtractBody {
+  imageIds: number[];
+  force?: boolean;
+}
+
+export interface PlanAiClassifyBody {
+  force?: boolean;
+}
+
+export interface PlanAiReviewBody { [key: string]: unknown }
 
 export type File3dFileFormat = typeof File3dFileFormat[keyof typeof File3dFileFormat];
 

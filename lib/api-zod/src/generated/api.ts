@@ -481,6 +481,7 @@ export const CreateProtocolResponse = zod.object({
 }).optional(),
   "operativeDescription": zod.string().optional(),
   "postopNotes": zod.string().optional(),
+  "planAiAnalysis": zod.record(zod.string(), zod.unknown()).optional(),
   "reopenHistory": zod.array(zod.object({
   "reopenedAt": zod.string(),
   "reopenedBy": zod.string().nullish()
@@ -753,6 +754,7 @@ export const GetProtocolResponse = zod.object({
 }).optional(),
   "operativeDescription": zod.string().optional(),
   "postopNotes": zod.string().optional(),
+  "planAiAnalysis": zod.record(zod.string(), zod.unknown()).optional(),
   "reopenHistory": zod.array(zod.object({
   "reopenedAt": zod.string(),
   "reopenedBy": zod.string().nullish()
@@ -1209,6 +1211,7 @@ export const UpdateProtocolResponse = zod.object({
 }).optional(),
   "operativeDescription": zod.string().optional(),
   "postopNotes": zod.string().optional(),
+  "planAiAnalysis": zod.record(zod.string(), zod.unknown()).optional(),
   "reopenHistory": zod.array(zod.object({
   "reopenedAt": zod.string(),
   "reopenedBy": zod.string().nullish()
@@ -1454,6 +1457,7 @@ export const DuplicateProtocolResponse = zod.object({
 }).optional(),
   "operativeDescription": zod.string().optional(),
   "postopNotes": zod.string().optional(),
+  "planAiAnalysis": zod.record(zod.string(), zod.unknown()).optional(),
   "reopenHistory": zod.array(zod.object({
   "reopenedAt": zod.string(),
   "reopenedBy": zod.string().nullish()
@@ -2058,6 +2062,11 @@ export const ListPlanningImagesResponseItem = zod.object({
   "isHeaderPhoto": zod.boolean().optional(),
   "displayOrder": zod.number(),
   "includeInPdf": zod.boolean().optional(),
+  "aiClassification": zod.string().nullish(),
+  "aiClassificationReason": zod.string().nullish(),
+  "isFinalMeasurement": zod.boolean().nullish(),
+  "selectedForExtraction": zod.boolean().optional(),
+  "contentHash": zod.string().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -2097,9 +2106,55 @@ export const CreatePlanningImageResponse = zod.object({
   "isHeaderPhoto": zod.boolean().optional(),
   "displayOrder": zod.number(),
   "includeInPdf": zod.boolean().optional(),
+  "aiClassification": zod.string().nullish(),
+  "aiClassificationReason": zod.string().nullish(),
+  "isFinalMeasurement": zod.boolean().nullish(),
+  "selectedForExtraction": zod.boolean().optional(),
+  "contentHash": zod.string().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
+
+
+/**
+ * @summary Fase 1 — classificar imagens do planeamento (sugestão IA)
+ */
+export const ClassifyPlanningImagesAiParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ClassifyPlanningImagesAiBody = zod.object({
+  "force": zod.boolean().optional()
+})
+
+export const ClassifyPlanningImagesAiResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Fase 2 — extrair medidas e sugerir diagnóstico das imagens confirmadas
+ */
+export const ExtractPlanAiParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ExtractPlanAiBody = zod.object({
+  "imageIds": zod.array(zod.number()),
+  "force": zod.boolean().optional()
+})
+
+export const ExtractPlanAiResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Rever propostas da IA (confirmar/corrigir/rejeitar) e diagnóstico
+ */
+export const ReviewPlanAiParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ReviewPlanAiBody = zod.record(zod.string(), zod.unknown())
+
+export const ReviewPlanAiResponse = zod.record(zod.string(), zod.unknown())
 
 
 /**
@@ -2126,6 +2181,11 @@ export const ReorderPlanningImagesResponseItem = zod.object({
   "isHeaderPhoto": zod.boolean().optional(),
   "displayOrder": zod.number(),
   "includeInPdf": zod.boolean().optional(),
+  "aiClassification": zod.string().nullish(),
+  "aiClassificationReason": zod.string().nullish(),
+  "isFinalMeasurement": zod.boolean().nullish(),
+  "selectedForExtraction": zod.boolean().optional(),
+  "contentHash": zod.string().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -2147,7 +2207,9 @@ export const UpdatePlanningImageBody = zod.object({
   "captureDate": zod.string().optional(),
   "isHeaderPhoto": zod.boolean().optional(),
   "displayOrder": zod.number().optional(),
-  "includeInPdf": zod.boolean().optional()
+  "includeInPdf": zod.boolean().optional(),
+  "isFinalMeasurement": zod.boolean().nullish(),
+  "selectedForExtraction": zod.boolean().optional()
 })
 
 export const UpdatePlanningImageResponse = zod.object({
@@ -2163,6 +2225,11 @@ export const UpdatePlanningImageResponse = zod.object({
   "isHeaderPhoto": zod.boolean().optional(),
   "displayOrder": zod.number(),
   "includeInPdf": zod.boolean().optional(),
+  "aiClassification": zod.string().nullish(),
+  "aiClassificationReason": zod.string().nullish(),
+  "isFinalMeasurement": zod.boolean().nullish(),
+  "selectedForExtraction": zod.boolean().optional(),
+  "contentHash": zod.string().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })

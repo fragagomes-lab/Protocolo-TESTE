@@ -35,6 +35,7 @@ import { PlanSection } from "./form-sections/plan-section";
 import { IntraopSection } from "./form-sections/intraop-section";
 import { DescriptionSection } from "./form-sections/description-section";
 import { PlanningSection } from "./form-sections/planning-section";
+import { AiProposalsReview } from "./form-sections/plan-ai-panel";
 import { ClinicalPhotosSection } from "./form-sections/clinical-photos-section";
 import { Files3dSection } from "./form-sections/files-3d-section";
 import { SurgicalDiagramsSection } from "./form-sections/surgical-diagrams-section";
@@ -42,14 +43,17 @@ import { SurgicalDiagramsSection } from "./form-sections/surgical-diagrams-secti
 const STEPS = [
   { id: 1, title: "Identificação", label: "Dados Básicos" },
   { id: 2, title: "Checklist", label: "Pré-op" },
-  { id: 3, title: "Plano Cirúrgico", label: "Movimentos" },
-  { id: 4, title: "Registo Intra-op", label: "Tempos & Materiais" },
-  { id: 5, title: "Descritivo", label: "Relatório Final" },
-  { id: 6, title: "Diagramas Cirúrgicos", label: "Esquemas" },
-  { id: 7, title: "Fotografia Clínica", label: "Imagens" },
-  { id: 8, title: "Ficheiros 3D", label: "STL / PLY" },
-  { id: 9, title: "Planeamento 3D", label: "Imagens" },
+  { id: 3, title: "Fotografia Clínica", label: "Imagens" },
+  { id: 4, title: "Planeamento 3D", label: "Imagens & IA" },
+  { id: 5, title: "Plano Cirúrgico", label: "Movimentos" },
+  { id: 6, title: "Registo Intra-op", label: "Tempos & Materiais" },
+  { id: 7, title: "Descritivo", label: "Relatório Final" },
+  { id: 8, title: "Diagramas Cirúrgicos", label: "Esquemas" },
+  { id: 9, title: "Ficheiros 3D", label: "STL / PLY" },
 ];
+
+// Etapas que exigem protocolo gravado (upload de ficheiros precisa de id)
+const STEPS_REQUIRING_SAVE = [3, 4];
 
 const LAST_STEP = STEPS.length;
 
@@ -60,7 +64,11 @@ export function ProtocolForm() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
 
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(() => {
+    // Após gravação automática do rascunho, retomar a etapa pretendida (?step=N)
+    const s = Number(new URLSearchParams(window.location.search).get("step"));
+    return Number.isInteger(s) && s >= 1 && s <= 9 ? s : 1;
+  });
   const [formData, setFormData] = useState<Partial<ProtocolInput>>({
     status: ProtocolStatus.draft,
     surgeryType: "Cirurgia Ortognática",
@@ -122,8 +130,23 @@ export function ProtocolForm() {
     setFormData(prev => ({ ...prev, [key]: value }));
   }, []);
 
+  // Navegar entre etapas — grava automaticamente o rascunho quando a etapa
+  // de destino exige protocolo existente (upload de imagens precisa de id).
+  const goToStep = async (target: number) => {
+    if (isNew && !protocolId && STEPS_REQUIRING_SAVE.includes(target)) {
+      if (!formData.processNumber || !formData.patientName) {
+        toast.error("Preencha o Nº de Processo e o Nome antes de adicionar imagens — o rascunho será guardado automaticamente.");
+        setCurrentStep(1);
+        return;
+      }
+      await handleSave(false, target);
+      return;
+    }
+    setCurrentStep(target);
+  };
+
   // Save Function
-  const handleSave = async (finalize = false) => {
+  const handleSave = async (finalize = false, nextStep?: number) => {
     try {
       const dataToSave = {
         ...formData,
@@ -138,8 +161,8 @@ export function ProtocolForm() {
 
       if (isNew) {
         const result = await createMutation.mutateAsync({ data: dataToSave });
-        toast.success("Protocolo criado com sucesso");
-        setLocation(`/protocols/${result.id}`);
+        toast.success(nextStep ? "Rascunho guardado automaticamente" : "Protocolo criado com sucesso");
+        setLocation(`/protocols/${result.id}${nextStep ? `?step=${nextStep}` : ""}`);
       } else {
         await updateMutation.mutateAsync({ 
           id: protocolId!, 
@@ -301,7 +324,7 @@ export function ProtocolForm() {
           {STEPS.map((step, index) => (
             <div key={step.id} className="flex items-center flex-1 last:flex-none">
               <button 
-                onClick={() => setCurrentStep(step.id)}
+                onClick={() => goToStep(step.id)}
                 className={`flex flex-col items-center gap-1 group focus:outline-none ${currentStep === step.id ? 'opacity-100' : 'opacity-50 hover:opacity-80'}`}
               >
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-colors
@@ -477,9 +500,15 @@ export function ProtocolForm() {
             </div>
           )}
 
-          {/* STEP 3: Surgical Plan */}
-          {currentStep === 3 && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+          {/* STEP 5: Surgical Plan */}
+          {currentStep === 5 && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 space-y-6">
+              <AiProposalsReview
+                protocolId={protocolId}
+                plan={formData.surgicalPlan || {}}
+                updatePlan={(plan) => updateForm("surgicalPlan", plan)}
+                isFinalized={isFinalized}
+              />
               <PlanSection 
                 plan={formData.surgicalPlan || {}}
                 updatePlan={(plan) => updateForm("surgicalPlan", plan)}
@@ -488,8 +517,8 @@ export function ProtocolForm() {
             </div>
           )}
 
-          {/* STEP 4: Intraop Record */}
-          {currentStep === 4 && (
+          {/* STEP 6: Intraop Record */}
+          {currentStep === 6 && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
               <IntraopSection
                 record={formData.intraopRecord || {}}
@@ -503,8 +532,8 @@ export function ProtocolForm() {
             </div>
           )}
 
-          {/* STEP 5: Description */}
-          {currentStep === 5 && (
+          {/* STEP 7: Description */}
+          {currentStep === 7 && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
               <DescriptionSection
                 protocolId={protocolId}
@@ -518,8 +547,8 @@ export function ProtocolForm() {
             </div>
           )}
 
-          {/* STEP 6: Surgical Diagrams */}
-          {currentStep === 6 && (
+          {/* STEP 8: Surgical Diagrams */}
+          {currentStep === 8 && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
               <Card className="shadow-xs border-border/50">
                 <CardHeader>
@@ -536,8 +565,8 @@ export function ProtocolForm() {
             </div>
           )}
 
-          {/* STEP 7: Clinical Photography */}
-          {currentStep === 7 && (
+          {/* STEP 3: Clinical Photography */}
+          {currentStep === 3 && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
               <Card className="shadow-xs border-border/50">
                 <CardHeader>
@@ -550,8 +579,8 @@ export function ProtocolForm() {
             </div>
           )}
 
-          {/* STEP 8: 3D Files */}
-          {currentStep === 8 && (
+          {/* STEP 9: 3D Files */}
+          {currentStep === 9 && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
               <Card className="shadow-xs border-border/50">
                 <CardHeader>
@@ -564,15 +593,15 @@ export function ProtocolForm() {
             </div>
           )}
 
-          {/* STEP 9: Planning Images */}
-          {currentStep === 9 && (
+          {/* STEP 4: Planning Images + AI */}
+          {currentStep === 4 && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
               <Card className="shadow-xs border-border/50">
                 <CardHeader>
-                  <CardTitle className="uppercase tracking-widest text-sm text-primary">Planeamento Virtual 3D</CardTitle>
+                  <CardTitle className="uppercase tracking-widest text-sm text-primary">Planeamento Virtual 3D — Imagens &amp; Análise IA</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <PlanningSection protocolId={protocolId} />
+                  <PlanningSection protocolId={protocolId} isFinalized={isFinalized} />
                 </CardContent>
               </Card>
             </div>
@@ -591,7 +620,7 @@ export function ProtocolForm() {
             
             {currentStep < LAST_STEP ? (
               <Button 
-                onClick={() => setCurrentStep(prev => Math.min(LAST_STEP, prev + 1))}
+                onClick={() => goToStep(Math.min(LAST_STEP, currentStep + 1))}
                 className="uppercase tracking-widest bg-primary hover:bg-primary/90"
               >
                 Próximo <ChevronRight className="ml-2 h-4 w-4" />

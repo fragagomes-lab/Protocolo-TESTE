@@ -33,6 +33,10 @@ import type {
   Phrase,
   PhraseInput,
   PhraseUpdate,
+  PlanAiAnalysis,
+  PlanAiClassifyBody,
+  PlanAiExtractBody,
+  PlanAiReviewBody,
   PlanningImage,
   PlanningImageInput,
   PlanningImageUpdate,
@@ -1657,6 +1661,222 @@ export const useCreatePlanningImage = <TError = ErrorType<ApiError>,
         TContext
       > => {
       return useMutation(getCreatePlanningImageMutationOptions(options));
+    }
+
+export const getClassifyPlanningImagesAiUrl = (id: number,) => {
+
+
+
+
+  return `/api/protocols/${id}/plan-ai/classify`
+}
+
+/**
+ * @summary Fase 1 — classificar imagens do planeamento (sugestão IA)
+ */
+export const classifyPlanningImagesAi = async (id: number,
+    planAiClassifyBody?: PlanAiClassifyBody, options?: RequestInit): Promise<PlanAiAnalysis> => {
+
+  return customFetch<PlanAiAnalysis>(getClassifyPlanningImagesAiUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(planAiClassifyBody)
+  }
+);}
+
+
+
+
+
+export const getClassifyPlanningImagesAiMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof classifyPlanningImagesAi>>, TError,{id: number;data?: BodyType<PlanAiClassifyBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof classifyPlanningImagesAi>>, TError,{id: number;data?: BodyType<PlanAiClassifyBody>}, TContext> => {
+
+const mutationKey = ['classifyPlanningImagesAi'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof classifyPlanningImagesAi>>, {id: number;data?: BodyType<PlanAiClassifyBody>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  classifyPlanningImagesAi(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ClassifyPlanningImagesAiMutationResult = NonNullable<Awaited<ReturnType<typeof classifyPlanningImagesAi>>>
+    export type ClassifyPlanningImagesAiMutationBody = BodyType<PlanAiClassifyBody> | undefined
+    export type ClassifyPlanningImagesAiMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Fase 1 — classificar imagens do planeamento (sugestão IA)
+ */
+export const useClassifyPlanningImagesAi = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof classifyPlanningImagesAi>>, TError,{id: number;data?: BodyType<PlanAiClassifyBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof classifyPlanningImagesAi>>,
+        TError,
+        {id: number;data?: BodyType<PlanAiClassifyBody>},
+        TContext
+      > => {
+      return useMutation(getClassifyPlanningImagesAiMutationOptions(options));
+    }
+
+export const getExtractPlanAiUrl = (id: number,) => {
+
+
+
+
+  return `/api/protocols/${id}/plan-ai/extract`
+}
+
+/**
+ * @summary Fase 2 — extrair medidas e sugerir diagnóstico das imagens confirmadas
+ */
+export const extractPlanAi = async (id: number,
+    planAiExtractBody: PlanAiExtractBody, options?: RequestInit): Promise<PlanAiAnalysis> => {
+
+  return customFetch<PlanAiAnalysis>(getExtractPlanAiUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(planAiExtractBody)
+  }
+);}
+
+
+
+
+
+export const getExtractPlanAiMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof extractPlanAi>>, TError,{id: number;data: BodyType<PlanAiExtractBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof extractPlanAi>>, TError,{id: number;data: BodyType<PlanAiExtractBody>}, TContext> => {
+
+const mutationKey = ['extractPlanAi'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof extractPlanAi>>, {id: number;data: BodyType<PlanAiExtractBody>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  extractPlanAi(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExtractPlanAiMutationResult = NonNullable<Awaited<ReturnType<typeof extractPlanAi>>>
+    export type ExtractPlanAiMutationBody = BodyType<PlanAiExtractBody>
+    export type ExtractPlanAiMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Fase 2 — extrair medidas e sugerir diagnóstico das imagens confirmadas
+ */
+export const useExtractPlanAi = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof extractPlanAi>>, TError,{id: number;data: BodyType<PlanAiExtractBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof extractPlanAi>>,
+        TError,
+        {id: number;data: BodyType<PlanAiExtractBody>},
+        TContext
+      > => {
+      return useMutation(getExtractPlanAiMutationOptions(options));
+    }
+
+export const getReviewPlanAiUrl = (id: number,) => {
+
+
+
+
+  return `/api/protocols/${id}/plan-ai/review`
+}
+
+/**
+ * @summary Rever propostas da IA (confirmar/corrigir/rejeitar) e diagnóstico
+ */
+export const reviewPlanAi = async (id: number,
+    planAiReviewBody: PlanAiReviewBody, options?: RequestInit): Promise<PlanAiAnalysis> => {
+
+  return customFetch<PlanAiAnalysis>(getReviewPlanAiUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(planAiReviewBody)
+  }
+);}
+
+
+
+
+
+export const getReviewPlanAiMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewPlanAi>>, TError,{id: number;data: BodyType<PlanAiReviewBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reviewPlanAi>>, TError,{id: number;data: BodyType<PlanAiReviewBody>}, TContext> => {
+
+const mutationKey = ['reviewPlanAi'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reviewPlanAi>>, {id: number;data: BodyType<PlanAiReviewBody>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  reviewPlanAi(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReviewPlanAiMutationResult = NonNullable<Awaited<ReturnType<typeof reviewPlanAi>>>
+    export type ReviewPlanAiMutationBody = BodyType<PlanAiReviewBody>
+    export type ReviewPlanAiMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Rever propostas da IA (confirmar/corrigir/rejeitar) e diagnóstico
+ */
+export const useReviewPlanAi = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewPlanAi>>, TError,{id: number;data: BodyType<PlanAiReviewBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reviewPlanAi>>,
+        TError,
+        {id: number;data: BodyType<PlanAiReviewBody>},
+        TContext
+      > => {
+      return useMutation(getReviewPlanAiMutationOptions(options));
     }
 
 export const getReorderPlanningImagesUrl = (id: number,) => {

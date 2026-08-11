@@ -30,7 +30,7 @@ export function PlanSection({ plan, updatePlan, isFinalized }: PlanSectionProps)
     updatePlan({ ...plan, chin: { ...plan.chin, included } });
   };
 
-  const updateMaxillaMovements = (field: keyof OrthoMovements, value: number) => {
+  const updateMaxillaMovements = (field: keyof OrthoMovements, value: number | undefined) => {
     if (isFinalized) return;
     const max = plan.maxilla || { included: true };
     const segs = max.segments || [{ segment: 'total', movements: {} }];
@@ -40,32 +40,53 @@ export function PlanSection({ plan, updatePlan, isFinalized }: PlanSectionProps)
     }
   };
 
-  const updateMandibleMovements = (field: keyof OrthoMovements, value: number) => {
+  const updateMandibleMovements = (field: keyof OrthoMovements, value: number | undefined) => {
     if (isFinalized) return;
     const mand = plan.mandible || { included: true };
     updatePlan({ ...plan, mandible: { ...mand, movements: { ...mand.movements, [field]: value } } });
   };
 
-  const updateChinMovements = (field: keyof OrthoMovements, value: number) => {
+  const updateChinMovements = (field: keyof OrthoMovements, value: number | undefined) => {
     if (isFinalized) return;
     const chin = plan.chin || { included: true };
     updatePlan({ ...plan, chin: { ...chin, movements: { ...chin.movements, [field]: value } } });
   };
 
+  // Editor de segmentos da maxila segmentada (sem tocar no segmento "total")
+  const SEGMENT_LABELS: Record<string, string> = {
+    anterior: "Segmento Anterior",
+    posterior_left: "Segmento Posterior Esq.",
+    posterior_right: "Segmento Posterior Dir.",
+  };
+
+  const updateSegmentMovements = (segName: string, field: keyof OrthoMovements, value: number | undefined) => {
+    if (isFinalized) return;
+    const max = plan.maxilla || { included: true };
+    const segs = [...(max.segments || [{ segment: 'total' as any, movements: {} }])].map(s => ({ ...s, movements: { ...s.movements } }));
+    let seg = segs.find(s => s.segment === segName);
+    if (!seg) { seg = { segment: segName as any, movements: {} }; segs.push(seg); }
+    seg.movements = { ...seg.movements, [field]: value };
+    updatePlan({ ...plan, maxilla: { ...max, segments: segs } });
+  };
+
   // Helper for Movement Inputs to keep the visual "clinical"
-  const MoveInput = ({ label, value, onChange, hint }: { label: string, value: number | null | undefined, onChange: (v: number) => void, hint?: string }) => (
+  // Precisão: passo 0,01 (≥2 casas decimais); rotações em graus (°)
+  const MoveInput = ({ label, value, onChange, hint, unit = "mm" }: { label: string, value: number | null | undefined, onChange: (v: number | undefined) => void, hint?: string, unit?: string }) => (
     <div className="flex flex-col space-y-2">
       <Label className="text-[10px] uppercase tracking-wider text-muted-foreground text-center">{label}</Label>
       <div className="relative">
         <Input 
           type="number" 
-          step="0.5"
+          step="0.01"
           value={value === null || value === undefined ? "" : value}
-          onChange={(e) => onChange(parseFloat(e.target.value))}
+          onChange={(e) => {
+            const v = e.target.value === "" ? undefined : parseFloat(e.target.value);
+            onChange(v !== undefined && isNaN(v) ? undefined : v);
+          }}
           disabled={isFinalized}
           className="font-mono text-center text-lg h-12 bg-white"
         />
-        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-mono">mm</span>
+        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-mono">{unit}</span>
       </div>
       {hint && <span className="text-[10px] text-muted-foreground text-center leading-tight">{hint}</span>}
     </div>
@@ -112,9 +133,31 @@ export function PlanSection({ plan, updatePlan, isFinalized }: PlanSectionProps)
                 label="Rotação (Yaw)" 
                 value={plan.maxilla.segments?.[0]?.movements?.rotation} 
                 onChange={(v) => updateMaxillaMovements('rotation', v)} 
+                unit="°"
               />
             </div>
-            
+
+            {plan.maxilla.osteotomyType === 'segmented' && (
+              <div className="space-y-6 border-2 border-primary/20 rounded-sm p-4 bg-primary/[0.02]">
+                <div className="text-xs uppercase tracking-widest font-bold text-primary">Maxila Segmentada — movimentos por segmento</div>
+                {(['anterior', 'posterior_right', 'posterior_left'] as const).map((segName) => {
+                  const seg = plan.maxilla?.segments?.find((s) => s.segment === segName);
+                  return (
+                    <div key={segName} className="space-y-2">
+                      <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{SEGMENT_LABELS[segName]}</Label>
+                      <div className="grid grid-cols-5 gap-4">
+                        <MoveInput label="Sagital" value={seg?.movements?.sagittal} onChange={(v) => updateSegmentMovements(segName, 'sagittal', v)} />
+                        <MoveInput label="Vertical" value={seg?.movements?.vertical} onChange={(v) => updateSegmentMovements(segName, 'vertical', v)} />
+                        <MoveInput label="Transverso Dir." value={seg?.movements?.transverseRight} onChange={(v) => updateSegmentMovements(segName, 'transverseRight', v)} hint="− dta / + esq do doente" />
+                        <MoveInput label="Transverso Esq." value={seg?.movements?.transverseLeft} onChange={(v) => updateSegmentMovements(segName, 'transverseLeft', v)} hint="− dta / + esq do doente" />
+                        <MoveInput label="Rotação (Yaw)" value={seg?.movements?.rotation} onChange={(v) => updateSegmentMovements(segName, 'rotation', v)} unit="°" />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             <Separator />
             
             <div className="grid grid-cols-3 gap-6">
@@ -167,7 +210,7 @@ export function PlanSection({ plan, updatePlan, isFinalized }: PlanSectionProps)
         </CardHeader>
         {plan.mandible?.included && (
           <CardContent className="pt-6 space-y-6">
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-5 gap-4">
               <MoveInput 
                 label="Avanço/Recuo (Sagital)" 
                 value={plan.mandible.movements?.sagittal} 
@@ -179,15 +222,22 @@ export function PlanSection({ plan, updatePlan, isFinalized }: PlanSectionProps)
                 onChange={(v) => updateMandibleMovements('vertical', v)} 
               />
               <MoveInput 
-                label="Transverso/Lateralidade" 
+                label="Transverso Dir." 
                 value={plan.mandible.movements?.transverseRight} 
-                onChange={(v) => { updateMandibleMovements('transverseRight', v); updateMandibleMovements('transverseLeft', v); }} 
+                onChange={(v) => updateMandibleMovements('transverseRight', v)} 
+                hint="− dta / + esq do doente"
+              />
+              <MoveInput 
+                label="Transverso Esq." 
+                value={plan.mandible.movements?.transverseLeft} 
+                onChange={(v) => updateMandibleMovements('transverseLeft', v)} 
                 hint="− dta / + esq do doente"
               />
               <MoveInput 
                 label="Rotação (Yaw)" 
                 value={plan.mandible.movements?.rotation} 
                 onChange={(v) => updateMandibleMovements('rotation', v)} 
+                unit="°"
               />
             </div>
             

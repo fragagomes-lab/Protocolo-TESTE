@@ -15,6 +15,12 @@ export const planningImagesTable = pgTable("planning_images", {
   isHeaderPhoto: boolean("is_header_photo").notNull().default(false),
   displayOrder: integer("display_order").notNull().default(0),
   includeInPdf: boolean("include_in_pdf").notNull().default(true),
+  // IA — fluxo de análise (classificação sugerida vs. confirmação humana)
+  aiClassification: text("ai_classification"),
+  aiClassificationReason: text("ai_classification_reason"),
+  isFinalMeasurement: boolean("is_final_measurement"),
+  selectedForExtraction: boolean("selected_for_extraction").notNull().default(false),
+  contentHash: text("content_hash"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

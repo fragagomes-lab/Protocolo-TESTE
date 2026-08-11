@@ -155,6 +155,9 @@ router.patch("/protocols/:id/planning-images/:imageId", async (req, res): Promis
   if (d.isHeaderPhoto !== undefined) updateData.isHeaderPhoto = d.isHeaderPhoto;
   if (d.displayOrder !== undefined) updateData.displayOrder = d.displayOrder;
   if (d.includeInPdf !== undefined) updateData.includeInPdf = d.includeInPdf;
+  const raw = req.body as Record<string, unknown>;
+  if (raw.isFinalMeasurement !== undefined) updateData.isFinalMeasurement = raw.isFinalMeasurement;
+  if (raw.selectedForExtraction !== undefined) updateData.selectedForExtraction = raw.selectedForExtraction;
 
   // Header photo is exclusive per protocol — clear any existing header first
   if (d.isHeaderPhoto === true) {

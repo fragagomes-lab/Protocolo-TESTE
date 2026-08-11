@@ -495,6 +495,81 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /protocols/{id}/plan-ai/classify:
+    post:
+      operationId: classifyPlanningImagesAi
+      tags: [planning]
+      summary: "Fase 1 — classificar imagens do planeamento (sugestão IA)"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanAiClassifyBody"
+      responses:
+        "200":
+          description: Classification stored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanAiAnalysis"
+
+  /protocols/{id}/plan-ai/extract:
+    post:
+      operationId: extractPlanAi
+      tags: [planning]
+      summary: "Fase 2 — extrair medidas e sugerir diagnóstico das imagens confirmadas"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanAiExtractBody"
+      responses:
+        "200":
+          description: Extraction stored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanAiAnalysis"
+
+  /protocols/{id}/plan-ai/review:
+    patch:
+      operationId: reviewPlanAi
+      tags: [planning]
+      summary: "Rever propostas da IA (confirmar/corrigir/rejeitar) e diagnóstico"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanAiReviewBody"
+      responses:
+        "200":
+          description: Review stored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanAiAnalysis"
+
   /protocols/{id}/planning-images/reorder:
     post:
       operationId: reorderPlanningImages
@@ -1211,6 +1286,8 @@ components:
           $ref: "#/components/schemas/SurgicalDiagrams"
         operativeDescription: { type: string }
         postopNotes: { type: string }
+        planAiAnalysis:
+          $ref: "#/components/schemas/PlanAiAnalysis"
         reopenHistory:
           type: array
           items:
@@ -1480,6 +1557,11 @@ components:
         isHeaderPhoto: { type: boolean }
         displayOrder: { type: integer }
         includeInPdf: { type: boolean }
+        aiClassification: { type: ["string", "null"] }
+        aiClassificationReason: { type: ["string", "null"] }
+        isFinalMeasurement: { type: ["boolean", "null"] }
+        selectedForExtraction: { type: boolean }
+        contentHash: { type: ["string", "null"] }
         createdAt: { type: string }
         updatedAt: { type: string }
 
@@ -1512,6 +1594,30 @@ components:
         isHeaderPhoto: { type: boolean }
         displayOrder: { type: integer }
         includeInPdf: { type: boolean }
+        isFinalMeasurement: { type: ["boolean", "null"] }
+        selectedForExtraction: { type: boolean }
+
+    PlanAiAnalysis:
+      type: object
+      additionalProperties: true
+
+    PlanAiExtractBody:
+      type: object
+      required: [imageIds]
+      properties:
+        imageIds:
+          type: array
+          items: { type: integer }
+        force: { type: boolean }
+
+    PlanAiClassifyBody:
+      type: object
+      properties:
+        force: { type: boolean }
+
+    PlanAiReviewBody:
+      type: object
+      additionalProperties: true
 
     # ─── 3D file schemas ─────────────────────────────────────────
 

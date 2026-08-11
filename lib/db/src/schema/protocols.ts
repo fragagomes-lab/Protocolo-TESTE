@@ -22,6 +22,7 @@ export const protocolsTable = pgTable("protocols", {
   materials: jsonb("materials"),
   piezoEquipment: jsonb("piezo_equipment"),
   surgicalDiagrams: jsonb("surgical_diagrams"),
+  planAiAnalysis: jsonb("plan_ai_analysis"),
   // Audit trail: every time a finalized protocol is reopened (un-finalized),
   // an entry { reopenedAt, reopenedBy? } is appended here by the API. Entries
   // are never removed — re-finalizing must not erase the history.

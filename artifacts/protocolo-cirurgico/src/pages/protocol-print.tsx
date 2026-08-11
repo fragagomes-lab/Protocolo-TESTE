@@ -93,6 +93,19 @@ function fmtMm(value: number | null | undefined): string {
   return value === null || value === undefined || Number.isNaN(value) ? "—" : `${value} mm`;
 }
 
+function fmtDeg(value: number | null | undefined): string {
+  return value === null || value === undefined || Number.isNaN(value) ? "—" : `${value}°`;
+}
+
+const SEGMENT_PRINT_LABELS: Record<string, string> = {
+  total: "Total",
+  anterior: "Seg. Anterior",
+  posterior_left: "Seg. Posterior Esq.",
+  posterior_right: "Seg. Posterior Dir.",
+  left: "Seg. Esquerdo",
+  right: "Seg. Direito",
+};
+
 function MovementsRow({ segment, movements }: { segment: string; movements?: OrthoMovements | null }) {
   return (
     <tr>
@@ -101,7 +114,7 @@ function MovementsRow({ segment, movements }: { segment: string; movements?: Ort
       <td className="border border-gray-300 px-2 py-1 text-center font-mono">{fmtMm(movements?.vertical)}</td>
       <td className="border border-gray-300 px-2 py-1 text-center font-mono">{fmtMm(movements?.transverseRight)}</td>
       <td className="border border-gray-300 px-2 py-1 text-center font-mono">{fmtMm(movements?.transverseLeft)}</td>
-      <td className="border border-gray-300 px-2 py-1 text-center font-mono">{fmtMm(movements?.rotation)}</td>
+      <td className="border border-gray-300 px-2 py-1 text-center font-mono">{fmtDeg(movements?.rotation)}</td>
     </tr>
   );
 }
@@ -131,7 +144,18 @@ function SurgicalPlanPrint({ plan }: { plan: SurgicalPlan }) {
           </tr>
         </thead>
         <tbody>
-          {maxilla && <MovementsRow segment="Maxila" movements={maxilla.segments?.[0]?.movements} />}
+          {maxilla &&
+            (maxilla.segments && maxilla.segments.length > 1 ? (
+              maxilla.segments.map((seg, i) => (
+                <MovementsRow
+                  key={i}
+                  segment={`Maxila — ${SEGMENT_PRINT_LABELS[seg.segment as string] || seg.segment || "Total"}`}
+                  movements={seg.movements}
+                />
+              ))
+            ) : (
+              <MovementsRow segment="Maxila" movements={maxilla.segments?.[0]?.movements} />
+            ))}
           {mandible && <MovementsRow segment="Mandíbula" movements={mandible.movements} />}
           {chin && <MovementsRow segment="Mento" movements={chin.movements} />}
         </tbody>

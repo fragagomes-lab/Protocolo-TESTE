@@ -35,6 +35,7 @@ import {
   FileText,
 } from "lucide-react";
 import { IMAGE_UPLOAD_ACCEPT, resolveContentType, isPdfName } from "@/lib/upload-utils";
+import { AiPlanningPanel } from "./plan-ai-panel";
 
 const CATEGORY_LABELS: Record<string, string> = {
   fotografias_clinicas: "Fotografias Clínicas",
@@ -50,9 +51,10 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 interface PlanningSectionProps {
   protocolId: number | null;
+  isFinalized?: boolean;
 }
 
-export function PlanningSection({ protocolId }: PlanningSectionProps) {
+export function PlanningSection({ protocolId, isFinalized = false }: PlanningSectionProps) {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -208,8 +210,45 @@ export function PlanningSection({ protocolId }: PlanningSectionProps) {
     );
   }
 
+  const handleToggleFinalMeasurement = async (image: PlanningImage) => {
+    if (!protocolId || isFinalized) return;
+    const current = (image as any).isFinalMeasurement === true;
+    try {
+      await updateImageMutateAsync({
+        id: protocolId,
+        imageId: image.id,
+        data: { isFinalMeasurement: !current, ...(current ? { selectedForExtraction: false } : {}) } as any,
+      });
+      invalidate();
+    } catch {
+      toast.error("Erro ao actualizar imagem.");
+    }
+  };
+
+  const handleToggleSelected = async (image: PlanningImage) => {
+    if (!protocolId || isFinalized) return;
+    try {
+      await updateImageMutateAsync({
+        id: protocolId,
+        imageId: image.id,
+        data: { selectedForExtraction: !(image as any).selectedForExtraction } as any,
+      });
+      invalidate();
+    } catch {
+      toast.error("Erro ao actualizar imagem.");
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Painel IA — 2 fases + diagnóstico sugerido */}
+      <AiPlanningPanel
+        protocolId={protocolId}
+        images={images}
+        isFinalized={isFinalized}
+        invalidateImages={invalidate}
+      />
+
       {/* Toolbar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 flex-wrap">
@@ -307,6 +346,25 @@ export function PlanningSection({ protocolId }: PlanningSectionProps) {
                   <Badge className="absolute top-2 left-2 text-[10px] rounded-sm bg-sidebar text-white border-0 uppercase tracking-wider">
                     {CATEGORY_LABELS[image.category] || image.category}
                   </Badge>
+                  {/* Sugestão da IA (classificação) */}
+                  {(image as any).aiClassification && (
+                    <Badge
+                      title={(image as any).aiClassificationReason || undefined}
+                      className={`absolute bottom-2 left-2 text-[10px] rounded-sm border uppercase tracking-wider ${
+                        (image as any).aiClassification === "final"
+                          ? "bg-green-100 text-green-800 border-green-300"
+                          : (image as any).aiClassification === "intermediate"
+                            ? "bg-gray-100 text-gray-600 border-gray-300"
+                            : "bg-amber-100 text-amber-800 border-amber-300"
+                      }`}
+                    >
+                      {(image as any).aiClassification === "final"
+                        ? "IA: medidas finais?"
+                        : (image as any).aiClassification === "intermediate"
+                          ? "IA: intermédia?"
+                          : "IA: indeterminada"}
+                    </Badge>
+                  )}
                   {/* PDF excluded indicator */}
                   {!image.includeInPdf && (
                     <div className="absolute top-2 right-2 bg-black/50 rounded-sm p-0.5">
@@ -356,6 +414,35 @@ export function PlanningSection({ protocolId }: PlanningSectionProps) {
                       <p className="text-xs text-muted-foreground truncate min-h-[16px]">
                         {image.caption || image.originalName || <span className="italic opacity-50">Sem legenda</span>}
                       </p>
+                      {/* Confirmação humana para a IA */}
+                      <div className="space-y-1 border-t border-border/40 pt-1.5">
+                        <label className="flex items-center gap-1.5 text-[11px] cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={(image as any).isFinalMeasurement === true}
+                            disabled={isFinalized}
+                            onChange={() => handleToggleFinalMeasurement(image)}
+                            className="h-3 w-3 accent-green-700"
+                          />
+                          <span className={(image as any).isFinalMeasurement === true ? "text-green-800 font-medium" : "text-muted-foreground"}>
+                            Confirmo: medidas finais
+                          </span>
+                        </label>
+                        {(image as any).isFinalMeasurement === true && (
+                          <label className="flex items-center gap-1.5 text-[11px] cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={!!(image as any).selectedForExtraction}
+                              disabled={isFinalized}
+                              onChange={() => handleToggleSelected(image)}
+                              className="h-3 w-3 accent-violet-700"
+                            />
+                            <span className={(image as any).selectedForExtraction ? "text-violet-800 font-medium" : "text-muted-foreground"}>
+                              Usar no pré-preenchimento (IA)
+                            </span>
+                          </label>
+                        )}
+                      </div>
                       {/* Actions */}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1">
