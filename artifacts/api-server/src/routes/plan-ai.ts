@@ -257,13 +257,15 @@ router.post("/protocols/:id/plan-ai/extract", async (req, res): Promise<void> =>
       "maxilla.vertical (mm, impacção − / descida +)",
       "maxilla.transverseRight (mm, − dta / + esq do doente)",
       "maxilla.transverseLeft (mm, − dta / + esq do doente)",
+      "maxilla.transverse (mm — usa quando a imagem mostra UM único valor transversal/lateral sem distinção de lado)",
       "maxilla.rotation (graus, yaw)",
       "maxilla.segment.<nome> (para maxila segmentada: anterior, posterior_left, posterior_right — mesmos subcampos)",
       "mandible.sagittal (mm)", "mandible.vertical (mm)",
       "mandible.transverseRight (mm)", "mandible.transverseLeft (mm)",
+      "mandible.transverse (mm — um único valor transversal sem lado)",
       "mandible.rotation (graus)",
       "chin.sagittal (mm)", "chin.vertical (mm)", "chin.transverse (mm)",
-      "other (medições finais relevantes sem campo direto, ex.: medições bilaterais de ramo)",
+      "other (APENAS para medições sem qualquer campo acima; movimentos transversais de maxila/mandíbula/mento NUNCA são 'other' — usa os campos transverse)",
     ].join("; ");
 
     const content: OpenAI.Chat.Completions.ChatCompletionContentPart[] = [
@@ -277,6 +279,14 @@ router.post("/protocols/:id/plan-ai/extract", async (req, res): Promise<void> =>
           `NÃO formules escolha de tratamento, NÃO proponhas movimentos diferentes, NÃO infiras valores ausentes, NÃO inventes texto. ` +
           `Se um valor estiver ilegível, ambíguo ou sem correspondência segura, marca undetermined=true e deixa value=null. ` +
           `Preserva o sinal e pelo menos duas casas decimais tal como legível. Campos possíveis: ${fieldList}.\n\n` +
+          `CONVENÇÃO DOLPHIN (Landmark Offset Tables): os campos dos módulos preenchem-se com os marcos ESQUELÉTICOS de referência — ` +
+          `maxila ← A-Point (coluna A-P/P- → maxilla.sagittal; Vert → maxilla.vertical; R-L/L-R → maxilla.transverse); ` +
+          `mandíbula ← B-Point (→ mandible.sagittal/vertical/transverse); ` +
+          `mento ← Pogonion ou movimento de genioplastia (→ chin.*). ` +
+          `Usa a secção "(Model Block)"/movimento do bloco quando existir; caso contrário a secção geral. ` +
+          `NÃO cries propostas individuais para offsets de marcos DENTÁRIOS (incisivos, caninos, cúspides U3/U6/L6, ANS, PNS, gonion, condylar points) — são redundantes para o plano; ` +
+          `se algo dentário for excecionalmente relevante, resume-o numa única proposta "other" com note. ` +
+          `Rotações/yaw/roll/pitch visíveis vão para os campos rotation. Mantém a lista de propostas curta e centrada nos módulos.\n\n`+
           `TAREFA 2 — DIAGNÓSTICO SUGERIDO: com base no conjunto (comparações pré/pós, segmentos, movimentos finais, landmarks), sugere o enquadramento da deformidade dentofacial que o planeamento procura corrigir. ` +
           `Podes dar mais de uma hipótese se a informação não for inequívoca; indica o grau de confiança e os elementos visuais que a sustentam. Nunca apresentes como definitivo.\n\n` +
           `Responde APENAS JSON válido:\n` +

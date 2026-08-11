@@ -327,6 +327,8 @@ export function AiProposalsReview({
   if (!protocolId || proposals.length === 0) return null;
 
   const pending = proposals.filter((p) => !p.review);
+  const pendingDoubtful = pending.filter((p) => p.undetermined || p.value === null || p.value === undefined);
+  const pendingClear = pending.filter((p) => !p.undetermined && p.value !== null && p.value !== undefined);
   const reviewComplete = !!analysis?.extraction?.reviewCompletedAt;
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["getProtocol", protocolId] });
@@ -355,11 +357,35 @@ export function AiProposalsReview({
     await send({ globalConfirm: true }, "Revisão global confirmada.");
   };
 
+  // Confirmação em bloco: confirma de uma vez todas as propostas sem dúvidas da IA.
+  // Se não restarem dúvidas por resolver, faz logo a confirmação global no mesmo pedido.
+  const confirmAllClear = async () => {
+    const clear = pending.filter((p) => !p.undetermined && p.value !== null && p.value !== undefined);
+    if (clear.length === 0) return;
+    const doubtfulRemaining = pending.some((p) => p.undetermined || p.value === null || p.value === undefined);
+    await send(
+      {
+        proposals: clear.map((p) => ({ id: p.id, status: "confirmed" })),
+        ...(doubtfulRemaining ? {} : { globalConfirm: true }),
+      },
+      doubtfulRemaining
+        ? `${clear.length} medida(s) confirmadas. Falta resolver as assinaladas com dúvida.`
+        : `${clear.length} medida(s) confirmadas e revisão global concluída.`,
+    );
+  };
+
   // Aplicar os valores confirmados/corrigidos ao plano (rascunho local — é preciso Guardar)
   const applyToPlan = () => {
     let next: SurgicalPlan = JSON.parse(JSON.stringify(plan ?? {}));
     let applied = 0;
     const setMove = (obj: any, field: string, v: number) => { obj.movements = { ...(obj.movements ?? {}), [field]: v }; };
+    // "transverse" sem lado → ambos os lados; com lado → o campo do lado certo
+    const resolveFields = (field: string, side?: string | null): string[] => {
+      if (field !== "transverse") return [field];
+      if (side === "right") return ["transverseRight"];
+      if (side === "left") return ["transverseLeft"];
+      return ["transverseRight", "transverseLeft"];
+    };
     for (const p of proposals) {
       if (!p.review || p.review.status === "rejected") continue;
       const v = p.review.value;
@@ -376,17 +402,17 @@ export function AiProposalsReview({
         (next.maxilla as any).segments = segs;
         applied++;
       } else if (t.startsWith("maxilla.")) {
-        const field = t.split(".")[1];
+        const fields = resolveFields(t.split(".")[1], p.side);
         next.maxilla = next.maxilla ?? { included: true };
         const segs: any[] = (next.maxilla.segments as any[]) ?? [];
         if (segs.length === 0) segs.push({ segment: "total", movements: {} });
-        segs[0].movements = { ...(segs[0].movements ?? {}), [field]: num };
+        for (const f of fields) segs[0].movements = { ...(segs[0].movements ?? {}), [f]: num };
         (next.maxilla as any).segments = segs;
         applied++;
       } else if (t.startsWith("mandible.")) {
-        const field = t.split(".")[1];
+        const fields = resolveFields(t.split(".")[1], p.side);
         next.mandible = next.mandible ?? { included: true };
-        setMove(next.mandible, field, num);
+        for (const f of fields) setMove(next.mandible, f, num);
         applied++;
       } else if (t.startsWith("chin.")) {
         let field = t.split(".")[1];
@@ -475,13 +501,20 @@ export function AiProposalsReview({
           <div className="flex items-center justify-between pt-2 border-t flex-wrap gap-2">
             <div className="text-xs text-muted-foreground">
               {pending.length > 0
-                ? `${pending.length} proposta(s) por rever — a confirmação global só fica disponível depois de rever todas.`
+                ? pendingDoubtful.length > 0
+                  ? `${pending.length} medida(s) por rever, das quais ${pendingDoubtful.length} com dúvida da IA — essas têm de ser resolvidas uma a uma (corrigir ou rejeitar).`
+                  : `${pending.length} medida(s) por rever — pode confirmar tudo de uma vez.`
                 : reviewComplete
                   ? `Revisão global confirmada em ${new Date(analysis!.extraction!.reviewCompletedAt!).toLocaleString("pt-PT")}.`
                   : "Todas as propostas foram revistas."}
             </div>
             <div className="flex gap-2">
-              {!reviewComplete && (
+              {!reviewComplete && pendingClear.length > 0 && (
+                <Button size="sm" disabled={review.isPending} onClick={confirmAllClear} className="text-xs uppercase tracking-widest bg-violet-700 hover:bg-violet-800">
+                  <CheckCircle2 className="mr-1 h-3 w-3" /> Confirmar todas ({pendingClear.length})
+                </Button>
+              )}
+              {!reviewComplete && pendingClear.length === 0 && (
                 <Button size="sm" variant="outline" disabled={pending.length > 0 || review.isPending} onClick={globalConfirm} className="text-xs uppercase tracking-widest">
                   <CheckCircle2 className="mr-1 h-3 w-3" /> Confirmação global
                 </Button>
