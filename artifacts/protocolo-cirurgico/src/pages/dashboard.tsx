@@ -9,6 +9,7 @@ import {
   ChevronRight
 } from "lucide-react";
 import { format } from "date-fns";
+import logo from "@assets/clinicadaface-logo.gif";
 import { ptBR } from "date-fns/locale";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -37,13 +38,16 @@ export function Dashboard() {
   };
 
   return (
-    <div className="flex-1 overflow-auto bg-muted/20 p-8">
-      <div className="max-w-6xl mx-auto space-y-8">
+    <div className="flex-1 overflow-auto bg-muted/20 p-4 md:p-8">
+      <div className="max-w-6xl mx-auto space-y-6 md:space-y-8">
         
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-light tracking-tight text-foreground">Dashboard</h1>
-            <p className="text-muted-foreground mt-1 text-sm uppercase tracking-widest">Protocolo Cirúrgico Ortognático</p>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-5">
+            <img src={logo} alt="Clínica da Face" className="h-16 md:h-20 object-contain" />
+            <div>
+              <h1 className="text-2xl md:text-3xl font-light tracking-tight text-foreground">Dashboard</h1>
+              <p className="text-muted-foreground mt-1 text-xs md:text-sm uppercase tracking-widest">Protocolo Cirúrgico Ortognático</p>
+            </div>
           </div>
           <Button asChild className="uppercase tracking-widest px-6" size="lg">
             <Link href="/protocols/new">

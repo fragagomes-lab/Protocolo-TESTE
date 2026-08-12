@@ -273,7 +273,7 @@ function PlateCard({ plate, index, onChange, onRemove, disabled }: PlateCardProp
       {expanded && (
         <div className="border-t px-3 py-3 space-y-4 bg-muted/5">
           {/* Plate details grid */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1">
               <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Marca</Label>
               <Input value={plate.brand || ""} onChange={e => upd("brand", e.target.value)} disabled={disabled} className="h-8 text-xs" placeholder="KLS Martin / Stryker" />
@@ -548,10 +548,10 @@ export function IntraopSection({ record, updateRecord, materials, updateMaterial
           <CardTitle className="uppercase tracking-widest text-sm text-primary">Tempos Cirúrgicos</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-x-8 gap-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
             <div className="space-y-4 border-r pr-8">
               <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Anestesia</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Início</Label>
                   <Input type="time" value={record.anesthesiaStartTime || ""} onChange={e => handleRecordChange("anesthesiaStartTime", e.target.value)} disabled={isFinalized} className="font-mono text-lg h-12" />
@@ -564,7 +564,7 @@ export function IntraopSection({ record, updateRecord, materials, updateMaterial
             </div>
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Cirurgia</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Início</Label>
                   <Input type="time" value={record.surgeryStartTime || ""} onChange={e => handleRecordChange("surgeryStartTime", e.target.value)} disabled={isFinalized} className="font-mono text-lg h-12" />

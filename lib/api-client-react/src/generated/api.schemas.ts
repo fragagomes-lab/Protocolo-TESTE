@@ -21,6 +21,7 @@ export interface SurgicalTeam {
   anesthesiologist?: string;
   scrubNurse?: string;
   perfusionist?: string;
+  surgeonOmNumber?: string;
 }
 
 export type ChecklistItemStatus = typeof ChecklistItemStatus[keyof typeof ChecklistItemStatus];
@@ -74,6 +75,7 @@ export interface PreopDiagnosis {
   tmjSymptoms?: boolean;
   additionalNotes?: string;
   clinicalAlerts?: string;
+  diagnosisNarrative?: string;
 }
 
 export interface OrthoMovements {
@@ -579,6 +581,10 @@ export interface Protocol {
   /** @nullable */
   utenteNumber?: string | null;
   /** @nullable */
+  citizenCardNumber?: string | null;
+  /** @nullable */
+  expectedStay?: string | null;
+  /** @nullable */
   admissionDateTime?: string | null;
   /** @nullable */
   dischargeDateTime?: string | null;
@@ -639,6 +645,8 @@ export interface ProtocolInput {
   postopNotes?: string;
   hospital?: string;
   utenteNumber?: string;
+  citizenCardNumber?: string;
+  expectedStay?: string;
   admissionDateTime?: string;
   dischargeDateTime?: string;
   nextAppointmentDate?: string;
@@ -689,6 +697,8 @@ export interface ProtocolUpdate {
   postopNotes?: string;
   hospital?: string;
   utenteNumber?: string;
+  citizenCardNumber?: string;
+  expectedStay?: string;
   admissionDateTime?: string;
   dischargeDateTime?: string;
   nextAppointmentDate?: string;

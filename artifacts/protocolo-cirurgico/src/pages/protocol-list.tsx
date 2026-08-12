@@ -132,7 +132,7 @@ export function ProtocolList() {
         </Select>
       </div>
 
-      <div className="flex-1 overflow-auto p-8 bg-muted/5">
+      <div className="flex-1 overflow-auto p-4 md:p-8 bg-muted/5">
         <div className="bg-white border rounded-sm shadow-xs overflow-hidden">
           <table className="w-full text-sm text-left">
             <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b">

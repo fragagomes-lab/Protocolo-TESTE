@@ -40,6 +40,7 @@ import { ClinicalPhotosSection } from "./form-sections/clinical-photos-section";
 import { Files3dSection } from "./form-sections/files-3d-section";
 import { SurgicalDiagramsSection } from "./form-sections/surgical-diagrams-section";
 import { LabPredictionSection } from "./form-sections/lab-prediction-section";
+import { DiagnosisBuilder } from "./form-sections/diagnosis-builder";
 import { statusLabel } from "@/lib/status-labels";
 
 const STEPS = [
@@ -113,6 +114,8 @@ export function ProtocolForm() {
         postopNotes: protocol.postopNotes || "",
         hospital: protocol.hospital || undefined,
         utenteNumber: protocol.utenteNumber || undefined,
+        citizenCardNumber: protocol.citizenCardNumber || undefined,
+        expectedStay: protocol.expectedStay || undefined,
         admissionDateTime: protocol.admissionDateTime || undefined,
         dischargeDateTime: protocol.dischargeDateTime || undefined,
         nextAppointmentDate: protocol.nextAppointmentDate || undefined,
@@ -249,7 +252,7 @@ export function ProtocolForm() {
 
   if (isLoading && !isNew) {
     return (
-      <div className="flex-1 p-8">
+      <div className="flex-1 p-4 md:p-8">
         <Skeleton className="h-12 w-full max-w-2xl mb-8" />
         <Skeleton className="h-64 w-full" />
       </div>
@@ -369,7 +372,7 @@ export function ProtocolForm() {
       </div>
 
       {/* Form Content Area */}
-      <div className="flex-1 overflow-auto bg-muted/5 p-8">
+      <div className="flex-1 overflow-auto bg-muted/5 p-4 md:p-8">
         <div className="max-w-4xl mx-auto space-y-6">
           
           {/* AVISOS IMPORTANTES — sempre visível em todos os passos */}
@@ -391,7 +394,7 @@ export function ProtocolForm() {
                   <CardTitle className="uppercase tracking-widest text-sm text-primary">Identificação do Doente</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="processNumber" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Nº Processo <span className="text-destructive">*</span></Label>
                       <Input 
@@ -432,7 +435,30 @@ export function ProtocolForm() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="citizenCardNumber" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Nº Cartão de Cidadão</Label>
+                      <Input
+                        id="citizenCardNumber"
+                        value={formData.citizenCardNumber || ""}
+                        onChange={(e) => updateForm("citizenCardNumber", e.target.value)}
+                        disabled={isFinalized}
+                        className="font-mono"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="utenteNumber" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Nº de Utente</Label>
+                      <Input 
+                        id="utenteNumber" 
+                        value={formData.utenteNumber || ""} 
+                        onChange={(e) => updateForm("utenteNumber", e.target.value)} 
+                        disabled={isFinalized}
+                        className="font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="patientDOB" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Data Nasc.</Label>
                       <Input 
@@ -493,7 +519,10 @@ export function ProtocolForm() {
                         <SelectItem value="Cirurgia Ortognática Bimaxilar">Cirurgia Ortognática Bimaxilar</SelectItem>
                         <SelectItem value="Cirurgia Ortognática Monomaxilar">Cirurgia Ortognática Monomaxilar</SelectItem>
                         <SelectItem value="Mentoplastia Isolada">Mentoplastia Isolada</SelectItem>
-                        <SelectItem value="Expansão Cirurgicamente Assistida (SARPE)">Expansão Cirurgicamente Assistida (SARPE)</SelectItem>
+                        {/* SARPE removido por ordem do cirurgião; mantido apenas se um protocolo legado já o tiver */}
+                        {formData.surgeryType === "Expansão Cirurgicamente Assistida (SARPE)" && (
+                          <SelectItem value="Expansão Cirurgicamente Assistida (SARPE)">Expansão Cirurgicamente Assistida (SARPE)</SelectItem>
+                        )}
                         <SelectItem value="Aumento Aloplástico na Maxila ou Mandíbula">Aumento Aloplástico na Maxila ou Mandíbula</SelectItem>
                       </SelectContent>
                     </Select>
@@ -506,7 +535,7 @@ export function ProtocolForm() {
                   <CardTitle className="uppercase tracking-widest text-sm text-primary">Dados da Cirurgia &amp; Internamento</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="hospital" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Hospital</Label>
                       <Input 
@@ -514,21 +543,28 @@ export function ProtocolForm() {
                         value={formData.hospital || ""} 
                         onChange={(e) => updateForm("hospital", e.target.value)} 
                         disabled={isFinalized}
-                        placeholder="Ex: Complexo Hospitalar das Torres de Lisboa"
+                        list="hospital-suggestions"
+                        autoComplete="off"
+                        placeholder="Escolha ou escreva o hospital..."
                       />
+                      <datalist id="hospital-suggestions">
+                        <option value="British Hospital LX" />
+                        <option value="Hospital da Cruz Vermelha Portuguesa – Lisboa" />
+                        <option value="Hospital de Santa Maria – Porto" />
+                      </datalist>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="utenteNumber" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Nº de Utente</Label>
-                      <Input 
-                        id="utenteNumber" 
-                        value={formData.utenteNumber || ""} 
-                        onChange={(e) => updateForm("utenteNumber", e.target.value)} 
+                      <Label htmlFor="expectedStay" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Internamento Previsto</Label>
+                      <Input
+                        id="expectedStay"
+                        value={formData.expectedStay || ""}
+                        onChange={(e) => updateForm("expectedStay", e.target.value)}
                         disabled={isFinalized}
-                        className="font-mono"
+                        placeholder="Ex: 24 horas"
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="admissionDateTime" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Internamento (data e hora)</Label>
                       <Input 
@@ -555,7 +591,7 @@ export function ProtocolForm() {
                       Duração do internamento: <span className="font-semibold text-foreground">{stayDurationLabel(formData.admissionDateTime, formData.dischargeDateTime)}</span>
                     </p>
                   )}
-                  <div className="grid grid-cols-3 gap-6 pt-4 border-t border-border/50">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-4 border-t border-border/50">
                     <div className="space-y-2">
                       <Label htmlFor="nextAppointmentDate" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Próxima Consulta — Data</Label>
                       <Input 
@@ -607,6 +643,14 @@ export function ProtocolForm() {
                 updateDiagnosis={(diag) => updateForm("preopDiagnosis", diag)}
                 isFinalized={isFinalized}
               />
+              <div className="mt-6">
+                <DiagnosisBuilder
+                  diagnosis={formData.preopDiagnosis || {}}
+                  updateDiagnosis={(diag) => updateForm("preopDiagnosis", diag)}
+                  patientAge={computeAge(formData.patientDOB, formData.surgeryDate) ?? formData.patientAge}
+                  isFinalized={isFinalized}
+                />
+              </div>
               <div className="mt-6">
                 <LabPredictionSection
                   value={formData.labPrediction || {}}

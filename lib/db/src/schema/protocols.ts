@@ -32,6 +32,9 @@ export const protocolsTable = pgTable("protocols", {
   // Dados de internamento / Nota de Alta
   hospital: text("hospital"),
   utenteNumber: text("utente_number"),
+  citizenCardNumber: text("citizen_card_number"),
+  // Internamento previsto (ex.: "24 horas") — distinto da duração real calculada
+  expectedStay: text("expected_stay"),
   admissionDateTime: text("admission_date_time"),
   dischargeDateTime: text("discharge_date_time"),
   nextAppointmentDate: text("next_appointment_date"),

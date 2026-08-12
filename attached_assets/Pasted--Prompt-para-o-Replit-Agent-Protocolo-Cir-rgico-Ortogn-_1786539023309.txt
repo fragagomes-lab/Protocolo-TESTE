@@ -1,0 +1,126 @@
+# Prompt para o Replit Agent — Protocolo Cirúrgico Ortognático (Clínica da Face)
+
+Continuação das melhorias da aplicação Protocolo Cirúrgico Ortognático da Clínica da Face.
+
+**NÃO refazer o que já está implementado e a funcionar** — manter tal como está:
+- A secção **Previsão Laboratorial** (Mallampati I–IV, Cuidados Especiais, Início da Cirurgia, Complementos com Prótese ATM, verificações numeradas 1, 2, 3, 4, 6, 7, 8 e 9 com opções, lado D/E, direção e valor em mm).
+- Os campos **hospital, nº de utente, data/hora de internamento e alta, próxima consulta (data/hora/local) e medicação para domicílio**.
+- A **seleção de secções para PDF com presets** (Nota de Alta — Clínica da Face; Nota de Alta — Doente (O Bloco); Protocolo Interno Completo; Checklist Dia da Cirurgia; Apenas Relato Operatório), começando com a seleção vazia.
+- Os 4 estados (draft, preop_complete, intraop_complete, finalized), o bloqueio de protocolos finalizados com reabertura auditada e a geração automática da descrição operatória.
+- O visual atual (teal #2D6B79, Roboto, cantos retos, sidebar escura).
+
+Anexo os modelos de Relatório Clínico da clínica (CL II TOTAL e CL III TOTAL) como referência de conteúdo e estrutura.
+
+---
+
+## 1. Limpezas em falta
+
+- Remover **"SARPE"** das opções de osteotomia da maxila — em `lib/api-spec/openapi.yaml`, `protocol-form.tsx`, `ortho-info.tsx`, `protocol-print.tsx` e no seed do api-server. Regenerar os schemas Zod e os hooks React Query.
+- Remover o item **"Reserva de Sangue"** do seed da checklist em `artifacts/api-server/src/lib/seed.ts` e de qualquer template pré-configurado onde apareça.
+
+## 2. Campos ainda em falta
+
+**Identificação do doente**
+- Adicionar **Nº de Cartão de Cidadão**.
+
+**Dados da cirurgia**
+- **Hospital** passa a dropdown editável com predefinições: British Hospital LX · Hospital da Cruz Vermelha Portuguesa – Lisboa · Hospital de Santa Maria – Porto · (texto livre).
+- Adicionar **Internamento previsto** (ex.: 24 horas) e **duração do internamento** calculada automaticamente a partir das datas/horas de internamento e alta.
+- No cirurgião responsável, adicionar campo **Nº OM** (predefinição: Dr. Matos da Fonseca – Nº OM 21892).
+
+**Pós-operatório**
+- Criar campo próprio **Recomendações pós-operatórias**, distinto das observações internas (`postopNotes`) e da medicação para domicílio. A secção "recommendations" do PDF passa a usar este campo.
+
+## 3. Construtor de Diagnóstico por seleção de frases
+
+No passo de Diagnóstico, além dos campos estruturados já existentes, adicionar um construtor de texto por seleção:
+- O utilizador escolhe uma **frase de introdução** e marca por **checkbox** as frases de diagnóstico aplicáveis, agrupadas por subcategoria (Esquelético/sagital, Vertical/planos oclusais, Assimetrias, Transversal/dentário, ATM/função, Vias aéreas/nasal, Fecho).
+- O texto composto é gerado como lista de tópicos e fica **editável**.
+- Este texto alimenta a secção Diagnóstico das Notas de Alta e do Relatório Clínico.
+
+## 4. Novo preset de PDF: "Relatório Clínico Pré-operatório (Seguradora)"
+
+Estrutura conforme os modelos .docx anexos:
+- Identificação do doente
+- Diagnóstico (frase de introdução + frases selecionadas)
+- Frase de fecho ortodôntico
+- "Efetuaremos uma «Cirurgia Virtual 3D» na semana anterior à cirurgia e confecionaremos as respetivas guias cirúrgicas."
+- **Terapêutica Cirúrgica Ortognática**: data da intervenção, local da intervenção, tempo de internamento previsto
+- **Atos médicos** — nova secção selecionável no PDF, com os códigos da Nomenclatura da Ordem dos Médicos e valores K, alimentada pelo plano cirúrgico
+- **Equipa**: "Equipa composta de Cirurgião, 1º Ajudante, 2º Ajudante, Instrumentista e Anestesista. Responsável pela Equipa Cirúrgica: Dr. Matos da Fonseca – Nº OM 21892"
+
+## 5. Alargar a biblioteca de Frases Clínicas
+
+Seed **idempotente**: não apagar frases personalizadas existentes nem duplicar as 21 frases já presentes. Organizar por categoria e subcategoria.
+
+### Introduções de diagnóstico
+"Doente de [X] anos" seguido de:
+- "…com disfunção articular têmporo-mandibular que apresenta:"
+- "…com discrepância dento-maxilar com mordida cruzada anterior que apresentava:"
+- "…com disfunção respiratória noturna do sono, que apresenta:"
+- "…com anomalia do crescimento dos maxilares que apresenta:"
+- "…com disfunção respiratória do sono e disfunção têmporo-mandibular que apresenta:"
+- "…que apresentava uma deformidade dentofacial caracterizada por:"
+
+### Diagnóstico — Esquelético / sagital
+Classe II esquelética · Classe II esquelética assimétrica · Classe II esquelética, com perfil convexo muito marcado · Classe III esquelética · Classe III esquelética assimétrica · Discrepância esquelética sagital com perfil côncavo · Discrepância esquelética sagital com perfil convexo · Retrusão do maxilar superior · Hipoplasia do maxilar superior · Retrusão mandibular · Protrusão mandibular · Biretrusão maxilo-mandibular · Discrepância esquelética sagital devida a excesso de crescimento sagital da mandíbula e retrusão do maxilar superior.
+
+### Diagnóstico — Vertical / planos oclusais
+Excesso vertical do maxilar superior · Défice vertical do maxilar superior · Mordida aberta anterior · Lábio superior curto · Plano oclusal superior em posição de rotação póstero-inferior · Plano oclusal superior duplo e divergente · Duplo plano oclusal superior · Alteração vertical do plano oclusal do maxilar superior no plano frontal (CANT), mais baixo à [D/E] · Mandíbula em posição de rotação póstero-inferior · Ângulo do plano oclusal superior muito acentuado em posição de rotação horária.
+
+### Diagnóstico — Assimetrias
+Assimetria facial devida a hiperplasia condiliana idiopática · Hiperplasia condiliana [D/E] · Hipoplasia condiliana · Acentuada hipoplasia condiliana e consequente micrognatismo · Hipoplasia do ramo ascendente [D/E] · Assimetria mandibular com desvio [D/E] · Crescimento mandibular assimétrico · Assimetria do maxilar com desvio e inclinação transversal · Assimetria do mento · Desvio da arcada dentária com inclinação (cant) do plano oclusal inferior · Assimetria da forma e tamanho da arcada dentária mandibular.
+
+### Diagnóstico — Transversal / dentário
+Discrepância dento-maxilar · Discrepância transversal maxilo-mandibular · Discrepância esquelética transversal maxilo-mandibular por insuficiência transversal do maxilar · Discrepância esquelética transversal maxilo-mandibular com mordida cruzada latero-posterior · Discrepância esquelética transversal maxilo-mandibular por défice maxilar · Discrepância dento-maxilar com mordida cruzada anterior · Oclusão de Classe II de Angle assimétrica · Oclusão de Classe III de Angle assimétrica · Reabsorções radiculares · Extrusão do sector incisivo inferior · Anomalias periodontais dos dentes incisivos inferiores · Desarmonia oclusal com impossibilidade de mastigar corretamente por falta de contacto dentário adequado.
+
+### Diagnóstico — ATM / função
+Disfunção álgica das articulações têmporo-mandibulares · Disfunção articular têmporo-mandibular com estalidos de abertura e frequente bloqueio · Bloqueio articular intermitente. Estalidos e dores articulares · Bruxismo · Alterações da dinâmica mastigatória · Alterações fonatórias · Eversão do lábio inferior por défice de suporte mentoniano.
+
+### Diagnóstico — Vias aéreas / nasal
+Diminuição do espaço respiratório faríngeo · Hipertrofia dos tecidos parafaríngeos · Desvio do septo nasal · Desvio do septo nasal com esporão vomeriano · Desvio complexo do septo nasal com obstrução nasal · Obstrução nasal crónica · Rinite acentuada com atopia · Sinusopatia maxilar · Hipertrofia dos cornetos · Disfunção respiratória noturna do sono · Roncopatia com períodos de apneia · Roncopatia acentuada · Síndrome da apneia obstrutiva do sono.
+
+### Diagnóstico — Fecho
+- "Tendo em conta as discrepâncias dentárias e esqueléticas existentes e as consequentes anomalias funcionais, o doente encontra-se em tratamento ortodôntico com aparatologia fixa tendo em vista o tratamento cirúrgico ortognático programado."
+- "O doente foi preparado com aparatologia ortodôntica fixa para o tratamento cirúrgico ortognático."
+- "Tem sido sempre saudável, não existindo anomalias congénitas nem antecedentes familiares importantes a referir."
+- "Efetuaremos uma «Cirurgia Virtual 3D» na semana anterior à cirurgia e confecionaremos as respetivas guias cirúrgicas."
+
+### Cirurgia (acrescentar às existentes)
+- "Recolha, sem complicações, de enxerto ósseo da crista ilíaca. Sutura por planos e intradérmica. Colocação de dreno aspirativo."
+- "Adaptação e fixação dos enxertos ósseos com parafusos. Preenchimento e moldagem volumétrica com osso moído."
+- "Aplicação de guias de corte personalizadas na mandíbula."
+- "Remoção de saliências/extremidades ósseas da mandíbula."
+
+### Pós-operatório (acrescentar)
+- "Foi colocado um sistema de arrefecimento facial com máscara (Hiloterm) no pós-operatório."
+- "Aplicação de injeção de córtico-esteróide para estimular a recuperação."
+
+### Medicação para domicílio (dose e frequência editáveis)
+- FORCID SOLUTAB 875/125 — dissolver e tomar de 8/8h nos 3 primeiros dias; depois 12/12h
+- DEFLAZACORTE 6 mg — de 8/8h; é conveniente alimentar-se antes
+- XUMADOL 1 g — saquetas, de 8/8h; suspender se não tiver dores
+- METAMIZOL 575 mg — cápsulas, de 8/8h
+- NIMESULIDE — saquetas; tomar até terminar a embalagem
+- SUCRALFATO — saquetas; 2 antes do pequeno-almoço e 2 antes do jantar
+- MALTOFER — líquido; 2/dia, ao almoço e jantar
+- VIBROCIL — nebulizador; 2 nebulizações nas duas narinas, 3×/dia
+- "Esquema de analgesia: as tomas correspondem a intervalos de 8 horas para cada medicamento (riscar as tomas já efetuadas)."
+
+### Atos médicos (Nomenclatura da Ordem dos Médicos)
+- 33.00.00.23 — Osteoplastia mandibular — K 300
+- 33.00.00.24 — Osteoplastia da mandíbula segmentar — K 200
+- 33.00.00.26 — Osteoplastia do maxilar superior, tipo LeFort I — K 200
+- 33.00.00.31 — Osteotomia segmentar do maxilar superior — K 150
+- 33.00.00.33 — Disjunção intermaxilar — K 150
+- 34.00.00.23 — Septoplastia — K 120
+- 34.00.00.06 — Eletrocoagulação dos cornetos bilateral — K 036
+- 30.02.00.32 — Mentoplastia com osteotomias de avanço — K 120
+
+## 6. Regras gerais
+
+- Não alterar dados de protocolos existentes; migrações de schema com valores por omissão seguros.
+- Regenerar hooks e schemas Zod após alterações ao OpenAPI spec.
+- O PDF continua a respeitar rigorosamente apenas as secções selecionadas.
+- Correr `pnpm run typecheck` e `pnpm run build` no fim.
+- Se algum ponto for ambíguo, pergunta antes de implementar.

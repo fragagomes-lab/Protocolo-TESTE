@@ -58,7 +58,8 @@ export const CreateProtocolBody = zod.object({
   "instrumentist": zod.string().optional(),
   "anesthesiologist": zod.string().optional(),
   "scrubNurse": zod.string().optional(),
-  "perfusionist": zod.string().optional()
+  "perfusionist": zod.string().optional(),
+  "surgeonOmNumber": zod.string().optional()
 }).optional(),
   "checklist": zod.array(zod.object({
   "item": zod.string(),
@@ -80,7 +81,8 @@ export const CreateProtocolBody = zod.object({
   "airwayCompromise": zod.boolean().optional(),
   "tmjSymptoms": zod.boolean().optional(),
   "additionalNotes": zod.string().optional(),
-  "clinicalAlerts": zod.string().optional()
+  "clinicalAlerts": zod.string().optional(),
+  "diagnosisNarrative": zod.string().optional()
 }).optional(),
   "surgicalPlan": zod.object({
   "maxilla": zod.object({
@@ -274,6 +276,8 @@ export const CreateProtocolBody = zod.object({
   "postopNotes": zod.string().optional(),
   "hospital": zod.string().optional(),
   "utenteNumber": zod.string().optional(),
+  "citizenCardNumber": zod.string().optional(),
+  "expectedStay": zod.string().optional(),
   "admissionDateTime": zod.string().optional(),
   "dischargeDateTime": zod.string().optional(),
   "nextAppointmentDate": zod.string().optional(),
@@ -320,7 +324,8 @@ export const CreateProtocolResponse = zod.object({
   "instrumentist": zod.string().optional(),
   "anesthesiologist": zod.string().optional(),
   "scrubNurse": zod.string().optional(),
-  "perfusionist": zod.string().optional()
+  "perfusionist": zod.string().optional(),
+  "surgeonOmNumber": zod.string().optional()
 }).optional(),
   "checklist": zod.array(zod.object({
   "item": zod.string(),
@@ -342,7 +347,8 @@ export const CreateProtocolResponse = zod.object({
   "airwayCompromise": zod.boolean().optional(),
   "tmjSymptoms": zod.boolean().optional(),
   "additionalNotes": zod.string().optional(),
-  "clinicalAlerts": zod.string().optional()
+  "clinicalAlerts": zod.string().optional(),
+  "diagnosisNarrative": zod.string().optional()
 }).optional(),
   "surgicalPlan": zod.object({
   "maxilla": zod.object({
@@ -536,6 +542,8 @@ export const CreateProtocolResponse = zod.object({
   "postopNotes": zod.string().optional(),
   "hospital": zod.string().nullish(),
   "utenteNumber": zod.string().nullish(),
+  "citizenCardNumber": zod.string().nullish(),
+  "expectedStay": zod.string().nullish(),
   "admissionDateTime": zod.string().nullish(),
   "dischargeDateTime": zod.string().nullish(),
   "nextAppointmentDate": zod.string().nullish(),
@@ -634,7 +642,8 @@ export const GetProtocolResponse = zod.object({
   "instrumentist": zod.string().optional(),
   "anesthesiologist": zod.string().optional(),
   "scrubNurse": zod.string().optional(),
-  "perfusionist": zod.string().optional()
+  "perfusionist": zod.string().optional(),
+  "surgeonOmNumber": zod.string().optional()
 }).optional(),
   "checklist": zod.array(zod.object({
   "item": zod.string(),
@@ -656,7 +665,8 @@ export const GetProtocolResponse = zod.object({
   "airwayCompromise": zod.boolean().optional(),
   "tmjSymptoms": zod.boolean().optional(),
   "additionalNotes": zod.string().optional(),
-  "clinicalAlerts": zod.string().optional()
+  "clinicalAlerts": zod.string().optional(),
+  "diagnosisNarrative": zod.string().optional()
 }).optional(),
   "surgicalPlan": zod.object({
   "maxilla": zod.object({
@@ -850,6 +860,8 @@ export const GetProtocolResponse = zod.object({
   "postopNotes": zod.string().optional(),
   "hospital": zod.string().nullish(),
   "utenteNumber": zod.string().nullish(),
+  "citizenCardNumber": zod.string().nullish(),
+  "expectedStay": zod.string().nullish(),
   "admissionDateTime": zod.string().nullish(),
   "dischargeDateTime": zod.string().nullish(),
   "nextAppointmentDate": zod.string().nullish(),
@@ -910,7 +922,8 @@ export const UpdateProtocolBody = zod.object({
   "instrumentist": zod.string().optional(),
   "anesthesiologist": zod.string().optional(),
   "scrubNurse": zod.string().optional(),
-  "perfusionist": zod.string().optional()
+  "perfusionist": zod.string().optional(),
+  "surgeonOmNumber": zod.string().optional()
 }).optional(),
   "checklist": zod.array(zod.object({
   "item": zod.string(),
@@ -932,7 +945,8 @@ export const UpdateProtocolBody = zod.object({
   "airwayCompromise": zod.boolean().optional(),
   "tmjSymptoms": zod.boolean().optional(),
   "additionalNotes": zod.string().optional(),
-  "clinicalAlerts": zod.string().optional()
+  "clinicalAlerts": zod.string().optional(),
+  "diagnosisNarrative": zod.string().optional()
 }).optional(),
   "surgicalPlan": zod.object({
   "maxilla": zod.object({
@@ -1126,6 +1140,8 @@ export const UpdateProtocolBody = zod.object({
   "postopNotes": zod.string().optional(),
   "hospital": zod.string().optional(),
   "utenteNumber": zod.string().optional(),
+  "citizenCardNumber": zod.string().optional(),
+  "expectedStay": zod.string().optional(),
   "admissionDateTime": zod.string().optional(),
   "dischargeDateTime": zod.string().optional(),
   "nextAppointmentDate": zod.string().optional(),
@@ -1173,7 +1189,8 @@ export const UpdateProtocolResponse = zod.object({
   "instrumentist": zod.string().optional(),
   "anesthesiologist": zod.string().optional(),
   "scrubNurse": zod.string().optional(),
-  "perfusionist": zod.string().optional()
+  "perfusionist": zod.string().optional(),
+  "surgeonOmNumber": zod.string().optional()
 }).optional(),
   "checklist": zod.array(zod.object({
   "item": zod.string(),
@@ -1195,7 +1212,8 @@ export const UpdateProtocolResponse = zod.object({
   "airwayCompromise": zod.boolean().optional(),
   "tmjSymptoms": zod.boolean().optional(),
   "additionalNotes": zod.string().optional(),
-  "clinicalAlerts": zod.string().optional()
+  "clinicalAlerts": zod.string().optional(),
+  "diagnosisNarrative": zod.string().optional()
 }).optional(),
   "surgicalPlan": zod.object({
   "maxilla": zod.object({
@@ -1389,6 +1407,8 @@ export const UpdateProtocolResponse = zod.object({
   "postopNotes": zod.string().optional(),
   "hospital": zod.string().nullish(),
   "utenteNumber": zod.string().nullish(),
+  "citizenCardNumber": zod.string().nullish(),
+  "expectedStay": zod.string().nullish(),
   "admissionDateTime": zod.string().nullish(),
   "dischargeDateTime": zod.string().nullish(),
   "nextAppointmentDate": zod.string().nullish(),
@@ -1460,7 +1480,8 @@ export const DuplicateProtocolResponse = zod.object({
   "instrumentist": zod.string().optional(),
   "anesthesiologist": zod.string().optional(),
   "scrubNurse": zod.string().optional(),
-  "perfusionist": zod.string().optional()
+  "perfusionist": zod.string().optional(),
+  "surgeonOmNumber": zod.string().optional()
 }).optional(),
   "checklist": zod.array(zod.object({
   "item": zod.string(),
@@ -1482,7 +1503,8 @@ export const DuplicateProtocolResponse = zod.object({
   "airwayCompromise": zod.boolean().optional(),
   "tmjSymptoms": zod.boolean().optional(),
   "additionalNotes": zod.string().optional(),
-  "clinicalAlerts": zod.string().optional()
+  "clinicalAlerts": zod.string().optional(),
+  "diagnosisNarrative": zod.string().optional()
 }).optional(),
   "surgicalPlan": zod.object({
   "maxilla": zod.object({
@@ -1676,6 +1698,8 @@ export const DuplicateProtocolResponse = zod.object({
   "postopNotes": zod.string().optional(),
   "hospital": zod.string().nullish(),
   "utenteNumber": zod.string().nullish(),
+  "citizenCardNumber": zod.string().nullish(),
+  "expectedStay": zod.string().nullish(),
   "admissionDateTime": zod.string().nullish(),
   "dischargeDateTime": zod.string().nullish(),
   "nextAppointmentDate": zod.string().nullish(),

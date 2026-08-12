@@ -152,7 +152,7 @@ export function LabPredictionSection({ value, onChange, isFinalized }: LabPredic
       </CardHeader>
       <CardContent className="space-y-8">
         {/* Mallampati · Início da Cirurgia */}
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Mallampati</Label>
             <Select

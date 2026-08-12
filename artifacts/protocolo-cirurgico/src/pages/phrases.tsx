@@ -175,7 +175,7 @@ export function PhrasesList() {
         </Select>
       </div>
 
-      <div className="flex-1 overflow-auto p-8 bg-muted/5">
+      <div className="flex-1 overflow-auto p-4 md:p-8 bg-muted/5">
         <div className="max-w-5xl mx-auto space-y-8">
           {isLoading ? (
             <div className="space-y-4">
@@ -247,7 +247,7 @@ export function PhrasesList() {
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="category"

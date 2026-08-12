@@ -15,6 +15,7 @@ type TeamField = keyof SurgicalTeam;
 // ─── Default clinic roster (pre-seeded suggestions) ─────────────────────────
 const DEFAULT_SUGGESTIONS: Partial<Record<TeamField, string[]>> = {
   surgeon: ["Dr. António Matos da Fonseca"],
+  surgeonOmNumber: ["21892"],
   firstAssistant: ["Dr. Luís Matos Cunha", "Dr. Miguel Fraga G."],
   secondAssistant: ["Dr. Luís Matos Cunha", "Dr. Miguel Fraga G."],
 };
@@ -26,6 +27,7 @@ type Roster = Partial<Record<TeamField, string[]>>;
 
 const KNOWN_FIELDS: TeamField[] = [
   "surgeon",
+  "surgeonOmNumber",
   "firstAssistant",
   "secondAssistant",
   "instrumentist",
@@ -72,6 +74,7 @@ function saveToRoster(field: TeamField, name: string): Roster {
 
 const FIELDS: { field: TeamField; label: string }[] = [
   { field: "surgeon", label: "Cirurgião Principal" },
+  { field: "surgeonOmNumber", label: "Nº OM (Cirurgião Responsável)" },
   { field: "anesthesiologist", label: "Anestesista" },
   { field: "firstAssistant", label: "1º Ajudante" },
   { field: "instrumentist", label: "Instrumentista" },
@@ -113,7 +116,7 @@ export function TeamSection({ team, updateTeam, isFinalized }: TeamSectionProps)
         <CardTitle className="uppercase tracking-widest text-sm text-primary">Equipa Cirúrgica</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {FIELDS.map(({ field, label }) => (
             <div className="space-y-2" key={field}>
               <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">

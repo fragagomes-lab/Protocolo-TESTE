@@ -392,7 +392,7 @@ type SectionKey =
   | "checklist" | "plan" | "planningImages" | "clinicalPhotos" | "sequence"
   | "intraop" | "materials" | "operativeReport" | "recommendations"
   | "homeMedication" | "nextAppointment" | "internalNotes" | "diagrams"
-  | "files3d" | "piezo" | "summary";
+  | "files3d" | "piezo" | "summary" | "medicalActs";
 
 const SECTION_DEFS: Array<{ key: SectionKey; label: string }> = [
   { key: "identification", label: "Identificação do doente" },
@@ -410,6 +410,7 @@ const SECTION_DEFS: Array<{ key: SectionKey; label: string }> = [
   { key: "diagrams", label: "Diagramas cirúrgicos" },
   { key: "files3d", label: "Inventário de ficheiros 3D" },
   { key: "piezo", label: "Equipamento piezoelétrico" },
+  { key: "medicalActs", label: "Atos médicos (códigos OM / valores K)" },
   { key: "operativeReport", label: "Relato operatório" },
   { key: "recommendations", label: "Recomendações pós-operatórias" },
   { key: "homeMedication", label: "Medicação para domicílio" },
@@ -418,7 +419,7 @@ const SECTION_DEFS: Array<{ key: SectionKey; label: string }> = [
   { key: "internalNotes", label: "Observações internas" },
 ];
 
-type DocStyle = "protocolo" | "nota_cdf" | "nota_bloco";
+type DocStyle = "protocolo" | "nota_cdf" | "nota_bloco" | "relatorio";
 
 const ALL_KEYS = SECTION_DEFS.map((s) => s.key);
 
@@ -453,7 +454,58 @@ const PRESETS: Array<{ id: string; label: string; style: DocStyle; sections: Sec
     style: "protocolo",
     sections: ["identification", "operativeReport"],
   },
+  {
+    id: "relatorio_seguradora",
+    label: "Relatório Clínico Pré-operatório (Seguradora)",
+    style: "relatorio",
+    sections: ["identification", "diagnosis", "surgeryData", "medicalActs", "team"],
+  },
 ];
+
+// ─── Atos médicos (Nomenclatura da Ordem dos Médicos) ────────────────────────
+// Derivados automaticamente do plano cirúrgico gravado.
+interface MedicalAct { code: string; name: string; k: string }
+
+function deriveMedicalActs(plan?: SurgicalPlan | null): MedicalAct[] {
+  if (!plan) return [];
+  const acts: MedicalAct[] = [];
+  const assoc = plan.associated ?? [];
+  const textOf = (a: { name?: string; details?: string }) => `${a.name ?? ""} ${a.details ?? ""}`.toLowerCase();
+  const assocMatch = (...terms: string[]) => assoc.some((a) => terms.some((t) => textOf(a).includes(t)));
+  const nasal = (plan.nasalNotes ?? "").toLowerCase();
+
+  if (plan.mandible?.included && plan.mandible.osteotomyType !== "genioplasty_only") {
+    acts.push({ code: "33.00.00.23", name: "Osteoplastia mandibular", k: "K 300" });
+  }
+  if (assocMatch("segmentar mand", "mandíbula segmentar", "mandibula segmentar")) {
+    acts.push({ code: "33.00.00.24", name: "Osteoplastia da mandíbula segmentar", k: "K 200" });
+  }
+  const mx = plan.maxilla;
+  if (mx?.included) {
+    // Tipo por omissão: o formulário trata maxila incluída sem tipo como LeFort I
+    const t = mx.osteotomyType || "LeFort_I";
+    const segmented = t === "segmented" || (mx.segments ?? []).some((s) => s.segment && s.segment !== "total");
+    if (t.startsWith("LeFort") || segmented) {
+      acts.push({ code: "33.00.00.26", name: "Osteoplastia do maxilar superior, tipo LeFort I", k: "K 200" });
+    }
+    if (segmented) {
+      acts.push({ code: "33.00.00.31", name: "Osteotomia segmentar do maxilar superior", k: "K 150" });
+    }
+    if (t === "expansion" || t === "SARPE") {
+      acts.push({ code: "33.00.00.33", name: "Disjunção intermaxilar", k: "K 150" });
+    }
+  }
+  if (assocMatch("septo") || nasal.includes("septo")) {
+    acts.push({ code: "34.00.00.23", name: "Septoplastia", k: "K 120" });
+  }
+  if (assocMatch("corneto", "turbin") || nasal.includes("corneto")) {
+    acts.push({ code: "34.00.00.06", name: "Eletrocoagulação dos cornetos bilateral", k: "K 036" });
+  }
+  if (plan.chin?.included || plan.mandible?.osteotomyType === "genioplasty_only") {
+    acts.push({ code: "30.02.00.32", name: "Mentoplastia com osteotomias de avanço", k: "K 120" });
+  }
+  return acts;
+}
 
 function emptySelection(): Record<SectionKey, boolean> {
   return Object.fromEntries(ALL_KEYS.map((k) => [k, false])) as Record<SectionKey, boolean>;
@@ -711,7 +763,12 @@ export function ProtocolPrint() {
   const docTitle =
     docStyle === "nota_cdf" ? "Nota de Alta"
     : docStyle === "nota_bloco" ? "Nota de Alta"
+    : docStyle === "relatorio" ? "Relatório Clínico"
     : "Protocolo Operatório";
+  const isRelatorio = docStyle === "relatorio";
+  const medicalActs = deriveMedicalActs(protocol.surgicalPlan);
+  const surgeonOm = protocol.team?.surgeonOmNumber || "21892";
+  const surgeonName = protocol.team?.surgeon || "Dr. Matos da Fonseca";
 
   // ── Blocos partilhados ──
   const identificationBlock = sel.identification && (
@@ -731,21 +788,58 @@ export function ProtocolPrint() {
           </div>
           <div><span className="font-semibold text-gray-600">Proc. Nº:</span> {protocol.processNumber}</div>
           {protocol.utenteNumber && <div><span className="font-semibold text-gray-600">Nº de Utente:</span> {protocol.utenteNumber}</div>}
+          {protocol.citizenCardNumber && <div><span className="font-semibold text-gray-600">Nº Cartão de Cidadão:</span> {protocol.citizenCardNumber}</div>}
           <div className="col-span-2"><span className="font-semibold text-gray-600">Procedimento:</span> <span className="font-bold">{protocol.surgeryType}</span></div>
         </div>
       </div>
     </PrintSection>
   );
 
-  const surgeryDataBlock = sel.surgeryData && (
+  const surgeryDataBlock = sel.surgeryData && (isRelatorio ? (
+    // Estrutura do Relatório Clínico para seguradoras (modelos CL II / CL III)
+    <PrintSection title="Terapêutica Cirúrgica Ortognática">
+      <div className="text-sm leading-relaxed font-serif space-y-1">
+        <p><span className="font-semibold">Data da intervenção cirúrgica</span> — {protocol.surgeryDate ? format(new Date(protocol.surgeryDate), "dd/MM/yyyy") : "a agendar"}</p>
+        <p><span className="font-semibold">Local da intervenção</span> — {protocol.hospital || "a definir"}</p>
+        <p><span className="font-semibold">Tempo de Internamento Previsto</span> — {protocol.expectedStay || "24 Horas"}</p>
+      </div>
+    </PrintSection>
+  ) : (
     <PrintSection title="Dados da Cirurgia / Internamento">
       <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
         {protocol.hospital && <div><span className="font-semibold text-gray-600">Hospital:</span> {protocol.hospital}</div>}
         <div><span className="font-semibold text-gray-600">Data da cirurgia:</span> {protocol.surgeryDate ? format(new Date(protocol.surgeryDate), "dd/MM/yyyy") : "—"}</div>
         <div><span className="font-semibold text-gray-600">Cirurgião:</span> {protocol.team?.surgeon || "A. Matos da Fonseca"}</div>
+        {protocol.expectedStay && <div><span className="font-semibold text-gray-600">Internamento previsto:</span> {protocol.expectedStay}</div>}
         <div><span className="font-semibold text-gray-600">Internamento:</span> {fmtDateTime(protocol.admissionDateTime)}</div>
         <div><span className="font-semibold text-gray-600">Alta:</span> {fmtDateTime(protocol.dischargeDateTime)}</div>
         {duration && <div><span className="font-semibold text-gray-600">Duração do internamento:</span> {duration}</div>}
+      </div>
+    </PrintSection>
+  ));
+
+  const medicalActsBlock = sel.medicalActs && (
+    <PrintSection title="Atos Médicos">
+      <div className="text-sm leading-relaxed font-serif">
+        <p className="mb-2">
+          Baseado na Tabela de Código de Nomenclatura e Valor Relativo de Actos Médicos da Ordem dos Médicos —
+          sob anestesia geral realização de:
+        </p>
+        {medicalActs.length > 0 ? (
+          <table className="w-full text-sm border-collapse">
+            <tbody>
+              {medicalActs.map((a) => (
+                <tr key={a.code}>
+                  <td className="py-0.5 pr-4 font-mono whitespace-nowrap align-top">{a.code}</td>
+                  <td className="py-0.5 pr-4">{a.name}</td>
+                  <td className="py-0.5 font-semibold whitespace-nowrap text-right">{a.k}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p className="text-gray-500 italic">Sem atos médicos derivados do plano cirúrgico — complete o plano primeiro.</p>
+        )}
       </div>
     </PrintSection>
   );
@@ -795,9 +889,12 @@ export function ProtocolPrint() {
     </PrintSection>
   );
 
-  const diagnosisBlock = sel.diagnosis && diagText && (
+  // O texto do Construtor de Diagnóstico (editável pelo cirurgião) tem
+  // prioridade; sem ele, usa-se o resumo gerado dos campos estruturados.
+  const narrativeText = protocol.preopDiagnosis?.diagnosisNarrative?.trim() || diagText;
+  const diagnosisBlock = sel.diagnosis && narrativeText && (
     <PrintSection title="Diagnóstico">
-      <div className="text-sm leading-relaxed whitespace-pre-wrap font-serif">{diagText}</div>
+      <div className="text-sm leading-relaxed whitespace-pre-wrap font-serif">{narrativeText}</div>
     </PrintSection>
   );
 
@@ -819,7 +916,7 @@ export function ProtocolPrint() {
         </Button>
       </div>
 
-      <div className="print:hidden max-w-[210mm] mx-auto px-12 pt-8">
+      <div className="print:hidden max-w-[210mm] mx-auto px-4 md:px-12 pt-8">
         <div className="border border-border rounded-sm p-6 bg-muted/20">
           <div className="text-sm font-bold uppercase tracking-widest text-primary mb-1">Documento a gerar</div>
           <p className="text-xs text-muted-foreground mb-4">
@@ -838,7 +935,7 @@ export function ProtocolPrint() {
               </Button>
             ))}
           </div>
-          <div className="grid grid-cols-3 gap-x-6 gap-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2">
             {SECTION_DEFS.map((s) => (
               <label key={s.key} className="flex items-center gap-2 text-xs cursor-pointer">
                 <Checkbox checked={!!sel[s.key]} onCheckedChange={() => toggleSection(s.key)} />
@@ -892,10 +989,11 @@ export function ProtocolPrint() {
         </div>
 
         {identificationBlock}
-        {surgeryDataBlock}
+        {/* No Relatório Clínico o diagnóstico vem antes da Terapêutica (modelos CL II/III) */}
+        {isRelatorio ? diagnosisBlock : surgeryDataBlock}
 
         {/* Avisos importantes — apenas em documentos internos */}
-        {!isNota && sel.diagnosis && protocol.preopDiagnosis?.clinicalAlerts && (
+        {!isNota && !isRelatorio && sel.diagnosis && protocol.preopDiagnosis?.clinicalAlerts && (
           <div className="mb-8 border-2 border-red-500 bg-red-50 p-4">
             <h2 className="text-sm font-bold uppercase tracking-widest text-red-700 mb-2">⚠ Avisos Importantes</h2>
             <div className="text-sm font-semibold text-red-900 whitespace-pre-wrap">
@@ -904,9 +1002,20 @@ export function ProtocolPrint() {
           </div>
         )}
 
-        {diagnosisBlock}
+        {isRelatorio ? surgeryDataBlock : diagnosisBlock}
 
-        {sel.team && (
+        {medicalActsBlock}
+
+        {sel.team && isRelatorio && (
+          <PrintSection title="Equipa">
+            <div className="text-sm leading-relaxed font-serif space-y-1">
+              <p>Equipa composta de Cirurgião, 1º Ajudante, 2º Ajudante, Instrumentista e Anestesista.</p>
+              <p>Responsável pela Equipa Cirúrgica: {surgeonName} – Nº OM {surgeonOm}</p>
+            </div>
+          </PrintSection>
+        )}
+
+        {sel.team && !isRelatorio && (
           <PrintSection title="Equipa Cirúrgica">
             <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
               <div><span className="font-semibold text-gray-600">Cirurgião:</span> {protocol.team?.surgeon || "-"}</div>
@@ -1145,7 +1254,7 @@ export function ProtocolPrint() {
         )}
 
         {/* Assinaturas */}
-        {isNota ? (
+        {isNota || isRelatorio ? (
           <SurgeonSignature />
         ) : (
           <div className="mt-24 pt-8 border-t border-gray-300 flex justify-between px-12">

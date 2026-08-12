@@ -95,6 +95,8 @@ router.post("/protocols", async (req, res): Promise<void> => {
     postopNotes,
     hospital,
     utenteNumber,
+    citizenCardNumber,
+    expectedStay,
     admissionDateTime,
     dischargeDateTime,
     nextAppointmentDate,
@@ -129,6 +131,8 @@ router.post("/protocols", async (req, res): Promise<void> => {
       postopNotes: postopNotes ?? "",
       hospital: hospital ?? null,
       utenteNumber: utenteNumber ?? null,
+      citizenCardNumber: citizenCardNumber ?? null,
+      expectedStay: expectedStay ?? null,
       admissionDateTime: admissionDateTime ?? null,
       dischargeDateTime: dischargeDateTime ?? null,
       nextAppointmentDate: nextAppointmentDate ?? null,
@@ -342,6 +346,10 @@ router.patch("/protocols/:id", async (req, res): Promise<void> => {
   if (data.hospital !== undefined) updateData.hospital = data.hospital;
   if (data.utenteNumber !== undefined)
     updateData.utenteNumber = data.utenteNumber;
+  if (data.citizenCardNumber !== undefined)
+    updateData.citizenCardNumber = data.citizenCardNumber;
+  if (data.expectedStay !== undefined)
+    updateData.expectedStay = data.expectedStay;
   if (data.admissionDateTime !== undefined)
     updateData.admissionDateTime = data.admissionDateTime;
   if (data.dischargeDateTime !== undefined)

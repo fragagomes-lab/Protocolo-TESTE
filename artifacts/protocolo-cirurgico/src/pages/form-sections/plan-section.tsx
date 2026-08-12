@@ -130,7 +130,7 @@ export function PlanSection({ plan, updatePlan, isFinalized }: PlanSectionProps)
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Lado Direito — ENP (degrau da placa paranasal dta.)</Label>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <MoveInput 
                     label="Avanço/Recuo (Sagital)" 
                     value={plan.maxilla.segments?.[0]?.movements?.sagittalRight ?? plan.maxilla.segments?.[0]?.movements?.sagittal} 
@@ -151,7 +151,7 @@ export function PlanSection({ plan, updatePlan, isFinalized }: PlanSectionProps)
               </div>
               <div className="space-y-2">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Lado Esquerdo — ponto A (degrau da placa paranasal esq.)</Label>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <MoveInput 
                     label="Avanço/Recuo (Sagital)" 
                     value={plan.maxilla.segments?.[0]?.movements?.sagittalLeft ?? plan.maxilla.segments?.[0]?.movements?.sagittal} 
@@ -170,7 +170,7 @@ export function PlanSection({ plan, updatePlan, isFinalized }: PlanSectionProps)
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <MoveInput 
                   label="Rotação (Yaw)" 
                   value={plan.maxilla.segments?.[0]?.movements?.rotation} 
@@ -203,7 +203,7 @@ export function PlanSection({ plan, updatePlan, isFinalized }: PlanSectionProps)
 
             <Separator />
             
-            <div className="grid grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Tipo de Osteotomia</Label>
                 <Select disabled={isFinalized} value={plan.maxilla.osteotomyType || "LeFort_I"} onValueChange={(val: string) => updatePlan({...plan, maxilla: {...plan.maxilla, osteotomyType: val as any}})}>
@@ -285,7 +285,7 @@ export function PlanSection({ plan, updatePlan, isFinalized }: PlanSectionProps)
             
             <Separator />
             
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Tipo de Osteotomia</Label>
                 <Select disabled={isFinalized} value={plan.mandible.osteotomyType || "BSSO"} onValueChange={(val: string) => updatePlan({...plan, mandible: {...plan.mandible, osteotomyType: val as any}})}>
@@ -323,7 +323,7 @@ export function PlanSection({ plan, updatePlan, isFinalized }: PlanSectionProps)
         </CardHeader>
         {plan.chin?.included && (
           <CardContent className="pt-6 space-y-6">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <MoveInput 
                 label="Avanço/Recuo (Sagital)" 
                 value={plan.chin.movements?.sagittal} 

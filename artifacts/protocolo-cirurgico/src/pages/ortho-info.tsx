@@ -210,10 +210,6 @@ export function OrthoInfo() {
                 text: "Reposicionamento cirúrgico do mento para harmonização do perfil facial",
               },
               {
-                title: "Expansão Palatina Cirúrgica (SARPE)",
-                text: "Indicada em casos de atresia maxilar transversal severa",
-              },
-              {
                 title: "Rinoplastia",
                 text: "Frequentemente associada para harmonização do terço médio facial",
               },

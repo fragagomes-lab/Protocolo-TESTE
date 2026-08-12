@@ -968,6 +968,8 @@ components:
         anesthesiologist: { type: string }
         scrubNurse: { type: string }
         perfusionist: { type: string }
+        # Nº de inscrição na Ordem dos Médicos do cirurgião responsável
+        surgeonOmNumber: { type: string }
 
     ChecklistItem:
       type: object
@@ -1001,6 +1003,9 @@ components:
         tmjSymptoms: { type: boolean }
         additionalNotes: { type: string }
         clinicalAlerts: { type: string }
+        # Texto de diagnóstico composto pelo construtor de frases (editável);
+        # alimenta as Notas de Alta e o Relatório Clínico.
+        diagnosisNarrative: { type: string }
 
     OrthoMovements:
       type: object
@@ -1293,6 +1298,8 @@ components:
         postopNotes: { type: string }
         hospital: { type: ["string", "null"] }
         utenteNumber: { type: ["string", "null"] }
+        citizenCardNumber: { type: ["string", "null"] }
+        expectedStay: { type: ["string", "null"] }
         admissionDateTime: { type: ["string", "null"] }
         dischargeDateTime: { type: ["string", "null"] }
         nextAppointmentDate: { type: ["string", "null"] }
@@ -1360,6 +1367,8 @@ components:
         postopNotes: { type: string }
         hospital: { type: string }
         utenteNumber: { type: string }
+        citizenCardNumber: { type: string }
+        expectedStay: { type: string }
         admissionDateTime: { type: string }
         dischargeDateTime: { type: string }
         nextAppointmentDate: { type: string }
@@ -1411,6 +1420,8 @@ components:
         postopNotes: { type: string }
         hospital: { type: string }
         utenteNumber: { type: string }
+        citizenCardNumber: { type: string }
+        expectedStay: { type: string }
         admissionDateTime: { type: string }
         dischargeDateTime: { type: string }
         nextAppointmentDate: { type: string }
