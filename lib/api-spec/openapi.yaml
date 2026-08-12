@@ -570,6 +570,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/PlanAiAnalysis"
 
+  /protocols/{id}/diagnosis-ai/suggest:
+    post:
+      operationId: suggestDiagnosisAi
+      tags: [planning]
+      summary: "Sugerir frases de diagnóstico por IA a partir das fotos clínicas iniciais"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DiagnosisAiSuggestBody"
+      responses:
+        "200":
+          description: Suggestion stored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiagnosisAiSuggestion"
+
   /protocols/{id}/planning-images/reorder:
     post:
       operationId: reorderPlanningImages
@@ -1689,6 +1714,31 @@ components:
     PlanAiAnalysis:
       type: object
       additionalProperties: true
+
+    DiagnosisAiSuggestBody:
+      type: object
+      properties:
+        force: { type: boolean }
+
+    DiagnosisAiSuggestion:
+      type: object
+      additionalProperties: true
+      properties:
+        introPhraseId:
+          type: integer
+          nullable: true
+        phraseIds:
+          type: array
+          items: { type: integer }
+        closingPhraseIds:
+          type: array
+          items: { type: integer }
+        notes:
+          type: string
+        model:
+          type: string
+        at:
+          type: string
 
     PlanAiExtractBody:
       type: object

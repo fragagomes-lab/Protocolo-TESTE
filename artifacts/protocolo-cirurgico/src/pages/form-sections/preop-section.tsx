@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,11 +27,14 @@ const DEFAULT_CHECKLIST = [
 
 export function PreopSection({ checklist, updateChecklist, diagnosis, updateDiagnosis, isFinalized }: PreopSectionProps) {
   
-  // Initialize default checklist if empty
-  if (checklist.length === 0 && !isFinalized) {
-    const defaultList = DEFAULT_CHECKLIST.map(item => ({ item, status: ChecklistItemStatus.missing }));
-    updateChecklist(defaultList);
-  }
+  // Initialize default checklist if empty (em efeito — nunca durante a renderização)
+  useEffect(() => {
+    if (checklist.length === 0 && !isFinalized) {
+      const defaultList = DEFAULT_CHECKLIST.map(item => ({ item, status: ChecklistItemStatus.missing }));
+      updateChecklist(defaultList);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checklist.length, isFinalized]);
 
   const handleChecklistStatus = (index: number, status: ChecklistItemStatus) => {
     if (isFinalized) return;

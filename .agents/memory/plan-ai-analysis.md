@@ -10,7 +10,9 @@ Regras acordadas com o cirurgião (não violar em trabalho futuro):
 - A seleção autoritária para a extração é a gravada na BD (`isFinalMeasurement` + `selectedForExtraction`), não a lista enviada pelo cliente.
 - Modelos: gpt-5.6-luna (classificação, barata) e gpt-5.6-terra (extração+diagnóstico) via Replit AI Integrations (ativa desde 11/08/2026, após verificação de telemóvel do utilizador).
 - **Porquê:** contexto clínico — auditabilidade e decisão humana obrigatórias; a code review chumbou a 1ª versão por permitir aplicar valores sem confirmação global e por destruir `aiRaw` em re-execuções.
-- **Fraqueza conhecida:** escrita last-writer-wins no jsonb (tarefa própria para concorrência).
+- **Fraqueza conhecida:** escrita last-writer-wins no jsonb (tarefa própria para concorrência). Exceção: o endpoint de sugestão de diagnóstico já regrava com transação + FOR UPDATE; os restantes plan-ai routes ainda não.
+- Sugestão de diagnóstico por fotos iniciais (12/08/2026): endpoint diagnosis-ai/suggest analisa só fotos clínicas (máx. 12, inclui reconstruções 3D iniciais), escolhe APENAS ids de frases existentes (1 introdução máx., nunca Fecho), validação server-side; guarda em planAiAnalysis.diagnosisSuggestion com arquivo das anteriores. No frontend só pré-seleciona caixas do Construtor de Diagnóstico — nada é gravado sem o médico gerar/gravar o texto.
+- Ordem dos passos do formulário (12/08/2026, pedido do cirurgião): Fotografia Clínica = passo 2, Checklist = passo 3.
 
 ## Convenção clínica do cirurgião para pontos Dolphin (11/08/2026 — NUNCA alterar sem ordem dele)
 - **PNS/ENP** = avanço REAL do lado DIREITO do maxilar; **A-Point** = lado ESQUERDO. Correspondem ao degrau (step/dobra) das placas de fixação paranasais pré-moldadas — não têm o significado cefalométrico habitual. Cada um mostra também as alterações verticais e transversais desse local.

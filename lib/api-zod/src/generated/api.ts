@@ -2500,6 +2500,27 @@ export const ReviewPlanAiResponse = zod.record(zod.string(), zod.unknown())
 
 
 /**
+ * @summary Sugerir frases de diagnóstico por IA a partir das fotos clínicas iniciais
+ */
+export const SuggestDiagnosisAiParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const SuggestDiagnosisAiBody = zod.object({
+  "force": zod.boolean().optional()
+})
+
+export const SuggestDiagnosisAiResponse = zod.object({
+  "introPhraseId": zod.number().nullish(),
+  "phraseIds": zod.array(zod.number()).optional(),
+  "closingPhraseIds": zod.array(zod.number()).optional(),
+  "notes": zod.string().optional(),
+  "model": zod.string().optional(),
+  "at": zod.string().optional()
+})
+
+
+/**
  * @summary Reorder planning images
  */
 export const ReorderPlanningImagesParams = zod.object({

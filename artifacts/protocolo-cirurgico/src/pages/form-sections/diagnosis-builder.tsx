@@ -5,11 +5,12 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useListPhrases, PreopDiagnosis } from "@workspace/api-client-react";
-import { ListChecks } from "lucide-react";
+import { useListPhrases, useSuggestDiagnosisAi, PreopDiagnosis, DiagnosisAiSuggestion } from "@workspace/api-client-react";
+import { ListChecks, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface DiagnosisBuilderProps {
+  protocolId: number | null;
   diagnosis: PreopDiagnosis;
   updateDiagnosis: (diagnosis: PreopDiagnosis) => void;
   patientAge?: number | null;
@@ -27,11 +28,13 @@ const SUBCATEGORY_ORDER = [
   "Vias aéreas / nasal",
 ];
 
-export function DiagnosisBuilder({ diagnosis, updateDiagnosis, patientAge, isFinalized }: DiagnosisBuilderProps) {
+export function DiagnosisBuilder({ protocolId, diagnosis, updateDiagnosis, patientAge, isFinalized }: DiagnosisBuilderProps) {
   const { data: phrases } = useListPhrases();
   const [intro, setIntro] = useState<string>("");
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [closings, setClosings] = useState<Set<number>>(new Set());
+  const [aiNotes, setAiNotes] = useState<string | null>(null);
+  const suggestMutation = useSuggestDiagnosisAi();
 
   const diag = useMemo(
     () => (phrases ?? []).filter((p) => p.category === "Diagnóstico"),
@@ -55,6 +58,35 @@ export function DiagnosisBuilder({ diagnosis, updateDiagnosis, patientAge, isFin
 
   const fillAge = (text: string) =>
     patientAge != null ? text.replace("[X]", String(patientAge)) : text;
+
+  const applySuggestion = (s: DiagnosisAiSuggestion) => {
+    const validIds = new Set(diag.map((p) => p.id));
+    const introPhrase = s.introPhraseId != null ? intros.find((p) => p.id === s.introPhraseId) : undefined;
+    if (introPhrase) setIntro(introPhrase.text);
+    setSelected(new Set((s.phraseIds ?? []).filter((pid) => validIds.has(pid))));
+    setAiNotes(s.notes || null);
+    toast.success("Sugestão da IA aplicada às caixas — reveja, ajuste e só depois gere o texto.");
+  };
+
+  const runSuggest = (force = false) => {
+    if (!protocolId) return;
+    suggestMutation.mutate(
+      { id: protocolId, data: { force } },
+      {
+        onSuccess: (s) => applySuggestion(s),
+        onError: (err: unknown) => {
+          const e = err as { response?: { status?: number; data?: { message?: string } } };
+          if (e.response?.status === 409) {
+            if (window.confirm("Já existe uma sugestão de IA para este doente. Repetir a análise (tem custos)? A anterior fica arquivada.")) {
+              runSuggest(true);
+            }
+          } else {
+            toast.error(e.response?.data?.message || "Erro na análise de IA.");
+          }
+        },
+      },
+    );
+  };
 
   const generate = () => {
     const parts: string[] = [];
@@ -83,6 +115,30 @@ export function DiagnosisBuilder({ diagnosis, updateDiagnosis, patientAge, isFin
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
+        <div className="flex flex-wrap items-center gap-3 border border-dashed border-primary/40 rounded-sm p-3 bg-primary/5">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="uppercase tracking-wider text-xs"
+            disabled={isFinalized || !protocolId || suggestMutation.isPending}
+            onClick={() => runSuggest(false)}
+          >
+            {suggestMutation.isPending
+              ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> A analisar fotos…</>
+              : <><Sparkles className="mr-2 h-4 w-4" /> Sugerir com IA (fotos iniciais)</>}
+          </Button>
+          <span className="text-xs text-muted-foreground leading-snug flex-1 min-w-[200px]">
+            A IA analisa as fotografias clínicas iniciais (passo 2) e pré-seleciona frases como sugestão.
+            Nada é aplicado sem a sua revisão{!protocolId ? " — grave primeiro o protocolo" : ""}.
+          </span>
+        </div>
+        {aiNotes && (
+          <div className="text-xs text-muted-foreground border-l-2 border-primary/40 pl-3 whitespace-pre-wrap">
+            <span className="font-semibold uppercase tracking-wider">Notas da IA: </span>{aiNotes}
+          </div>
+        )}
+
         <div className="space-y-2">
           <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Frase de introdução</Label>
           <Select disabled={isFinalized} value={intro} onValueChange={setIntro}>

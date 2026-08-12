@@ -45,8 +45,8 @@ import { statusLabel } from "@/lib/status-labels";
 
 const STEPS = [
   { id: 1, title: "Identificação", label: "Dados Básicos" },
-  { id: 2, title: "Checklist", label: "Pré-op" },
-  { id: 3, title: "Fotografia Clínica", label: "Imagens" },
+  { id: 2, title: "Fotografia Clínica", label: "Imagens" },
+  { id: 3, title: "Checklist", label: "Pré-op" },
   { id: 4, title: "Planeamento 3D", label: "Imagens & IA" },
   { id: 5, title: "Plano Cirúrgico", label: "Movimentos" },
   { id: 6, title: "Registo Intra-op", label: "Tempos & Materiais" },
@@ -56,7 +56,7 @@ const STEPS = [
 ];
 
 // Etapas que exigem protocolo gravado (upload de ficheiros precisa de id)
-const STEPS_REQUIRING_SAVE = [3, 4];
+const STEPS_REQUIRING_SAVE = [2, 4];
 
 const LAST_STEP = STEPS.length;
 
@@ -633,8 +633,8 @@ export function ProtocolForm() {
             </div>
           )}
 
-          {/* STEP 2: Pre-op Checklist */}
-          {currentStep === 2 && (
+          {/* STEP 3: Pre-op Checklist (após as fotos iniciais) */}
+          {currentStep === 3 && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
               <PreopSection 
                 checklist={formData.checklist || []}
@@ -645,6 +645,7 @@ export function ProtocolForm() {
               />
               <div className="mt-6">
                 <DiagnosisBuilder
+                  protocolId={protocolId}
                   diagnosis={formData.preopDiagnosis || {}}
                   updateDiagnosis={(diag) => updateForm("preopDiagnosis", diag)}
                   patientAge={computeAge(formData.patientDOB, formData.surgeryDate) ?? formData.patientAge}
@@ -730,8 +731,8 @@ export function ProtocolForm() {
             </div>
           )}
 
-          {/* STEP 3: Clinical Photography */}
-          {currentStep === 3 && (
+          {/* STEP 2: Clinical Photography (fotos iniciais) */}
+          {currentStep === 2 && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
               <Card className="shadow-xs border-border/50">
                 <CardHeader>

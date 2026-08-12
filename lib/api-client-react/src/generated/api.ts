@@ -21,6 +21,8 @@ import type {
 
 import type {
   ApiError,
+  DiagnosisAiSuggestBody,
+  DiagnosisAiSuggestion,
   File3d,
   File3dInput,
   File3dUpdate,
@@ -1877,6 +1879,78 @@ export const useReviewPlanAi = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getReviewPlanAiMutationOptions(options));
+    }
+
+export const getSuggestDiagnosisAiUrl = (id: number,) => {
+
+
+
+
+  return `/api/protocols/${id}/diagnosis-ai/suggest`
+}
+
+/**
+ * @summary Sugerir frases de diagnóstico por IA a partir das fotos clínicas iniciais
+ */
+export const suggestDiagnosisAi = async (id: number,
+    diagnosisAiSuggestBody?: DiagnosisAiSuggestBody, options?: RequestInit): Promise<DiagnosisAiSuggestion> => {
+
+  return customFetch<DiagnosisAiSuggestion>(getSuggestDiagnosisAiUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(diagnosisAiSuggestBody)
+  }
+);}
+
+
+
+
+
+export const getSuggestDiagnosisAiMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof suggestDiagnosisAi>>, TError,{id: number;data?: BodyType<DiagnosisAiSuggestBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof suggestDiagnosisAi>>, TError,{id: number;data?: BodyType<DiagnosisAiSuggestBody>}, TContext> => {
+
+const mutationKey = ['suggestDiagnosisAi'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof suggestDiagnosisAi>>, {id: number;data?: BodyType<DiagnosisAiSuggestBody>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  suggestDiagnosisAi(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SuggestDiagnosisAiMutationResult = NonNullable<Awaited<ReturnType<typeof suggestDiagnosisAi>>>
+    export type SuggestDiagnosisAiMutationBody = BodyType<DiagnosisAiSuggestBody> | undefined
+    export type SuggestDiagnosisAiMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Sugerir frases de diagnóstico por IA a partir das fotos clínicas iniciais
+ */
+export const useSuggestDiagnosisAi = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof suggestDiagnosisAi>>, TError,{id: number;data?: BodyType<DiagnosisAiSuggestBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof suggestDiagnosisAi>>,
+        TError,
+        {id: number;data?: BodyType<DiagnosisAiSuggestBody>},
+        TContext
+      > => {
+      return useMutation(getSuggestDiagnosisAiMutationOptions(options));
     }
 
 export const getReorderPlanningImagesUrl = (id: number,) => {

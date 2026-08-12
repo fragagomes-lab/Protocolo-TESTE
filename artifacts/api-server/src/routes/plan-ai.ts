@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { createHash } from "crypto";
 import { eq, and, inArray } from "drizzle-orm";
 import OpenAI from "openai";
-import { db, planningImagesTable, protocolsTable } from "@workspace/db";
+import { db, planningImagesTable, protocolsTable, phrasesTable } from "@workspace/db";
 import { blockIfProtocolMissingOrFinalized } from "../lib/protocolGuard";
 import { ObjectStorageService } from "../lib/objectStorage";
 
@@ -405,6 +405,142 @@ router.patch("/protocols/:id/plan-ai/review", async (req, res): Promise<void> =>
 
   await saveAnalysis(id, analysis);
   res.json(analysis);
+});
+
+// ─────────────────────────────────────────────────────────────
+// Sugestão de diagnóstico por IA a partir das FOTOS CLÍNICAS INICIAIS
+// (só por botão; a IA escolhe apenas frases existentes na biblioteca;
+//  o médico revê e confirma no Construtor de Diagnóstico)
+// ─────────────────────────────────────────────────────────────
+const CLINICAL_PHOTO_CATEGORIES = ["foto_extraoral", "foto_intraoral", "foto_clinica_outra", "fotografias_clinicas"];
+
+router.post("/protocols/:id/diagnosis-ai/suggest", async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) { res.status(400).json({ error: "invalid id" }); return; }
+  if (await blockIfProtocolMissingOrFinalized(id, res)) return;
+
+  const protocol = await getProtocol(id);
+  const analysis: Analysis = ((protocol.planAiAnalysis as Analysis) ?? {}) as Analysis;
+  const force = !!req.body?.force;
+  if ((analysis as any).diagnosisSuggestion && !force) {
+    res.status(409).json({
+      error: "already_suggested",
+      message: "Já existe uma sugestão de diagnóstico. Confirme antes de repetir a análise (tem custos).",
+    });
+    return;
+  }
+
+  const openai = getAiClient();
+  if (!openai) { aiNotConfigured(res); return; }
+
+  const all = await db
+    .select()
+    .from(planningImagesTable)
+    .where(and(eq(planningImagesTable.protocolId, id), inArray(planningImagesTable.category, CLINICAL_PHOTO_CATEGORIES)));
+  const photos = all.filter((i) => !isPdf(i));
+  if (photos.length === 0) {
+    res.status(400).json({ error: "no_images", message: "Sem fotografias clínicas iniciais para analisar. Carregue-as primeiro no passo Fotografia Clínica." });
+    return;
+  }
+
+  const phrases = await db.select().from(phrasesTable).where(eq(phrasesTable.category, "Diagnóstico"));
+  if (phrases.length === 0) {
+    res.status(400).json({ error: "no_phrases", message: "Sem frases de diagnóstico na biblioteca." });
+    return;
+  }
+  const bySub = new Map<string, typeof phrases>();
+  for (const p of phrases) {
+    const sub = p.subcategory || "Outros";
+    bySub.set(sub, [...(bySub.get(sub) ?? []), p]);
+  }
+  const phraseCatalog = [...bySub.entries()]
+    .map(([sub, items]) => `## ${sub}\n${items.map((p) => `${p.id}: ${p.text}`).join("\n")}`)
+    .join("\n\n");
+
+  try {
+    const loaded: Array<{ b64: string; mime: string }> = [];
+    for (const img of photos.slice(0, 12)) {
+      const data = await loadImageBuffer(img.objectPath);
+      if (data) loaded.push({ b64: data.b64, mime: data.mime });
+    }
+    if (loaded.length === 0) {
+      res.status(400).json({ error: "no_images", message: "Não foi possível carregar as fotografias." });
+      return;
+    }
+
+    const content: OpenAI.Chat.Completions.ChatCompletionContentPart[] = [
+      {
+        type: "text",
+        text:
+          `És um assistente de um cirurgião maxilo-facial. Vais receber fotografias clínicas iniciais de um doente de cirurgia ortognática ` +
+          `(extraorais, intraorais e/ou reconstruções 3D da situação inicial). ` +
+          `A tua tarefa é SUGERIR quais das frases de diagnóstico da biblioteca abaixo aparentam aplicar-se, para o médico rever. ` +
+          `REGRAS ESTRITAS: escolhe APENAS ids que existem na biblioteca; NUNCA inventes achados — se as imagens não permitirem avaliar um domínio, simplesmente não escolhas frases desse domínio; ` +
+          `na dúvida, omite. Podes sugerir no máximo UMA frase da subcategoria "Introdução" (a mais adequada ao padrão esquelético aparente) e nenhuma de "Fecho". ` +
+          `Responde APENAS JSON: {"introPhraseId": number|null, "phraseIds": [number,...], "notes": "curta justificação em português das escolhas e das limitações (ex.: domínios não avaliáveis pelas fotos)"}.\n\n` +
+          `BIBLIOTECA DE FRASES:\n${phraseCatalog}`,
+      },
+      ...loaded.map((b) => ({
+        type: "image_url" as const,
+        image_url: { url: `data:${b.mime};base64,${b.b64}` },
+      })),
+    ];
+
+    const resp = await openai.chat.completions.create({
+      model: EXTRACT_MODEL,
+      max_completion_tokens: 8192,
+      messages: [{ role: "user", content }],
+    });
+    const raw = resp.choices[0]?.message?.content ?? "";
+    const parsed = extractJson(raw) as { introPhraseId?: number | null; phraseIds?: number[]; notes?: string };
+
+    // Validar: só ids existentes; intro só de "Introdução"; corpo nunca de Introdução/Fecho
+    const validIds = new Set(phrases.map((p) => p.id));
+    const subOf = new Map(phrases.map((p) => [p.id, p.subcategory || "Outros"]));
+    const introPhraseId =
+      typeof parsed.introPhraseId === "number" && validIds.has(parsed.introPhraseId) && subOf.get(parsed.introPhraseId) === "Introdução"
+        ? parsed.introPhraseId
+        : null;
+    const phraseIds = [...new Set((parsed.phraseIds ?? []).filter(
+      (pid) => typeof pid === "number" && validIds.has(pid) && subOf.get(pid) !== "Introdução" && subOf.get(pid) !== "Fecho",
+    ))];
+
+    const suggestion = {
+      at: new Date().toISOString(),
+      model: EXTRACT_MODEL,
+      imageIds: photos.slice(0, 12).map((p) => p.id),
+      introPhraseId,
+      phraseIds,
+      closingPhraseIds: [] as number[],
+      notes: typeof parsed.notes === "string" ? parsed.notes : "",
+      aiRaw: raw,
+      status: "pending_review",
+    };
+
+    // Auditoria: arquivar sugestão anterior, nunca substituir sem rasto.
+    // Regravação dentro de transação com bloqueio da linha para evitar que
+    // escritas simultâneas percam sugestões ou histórico (re-lê o estado atual).
+    await db.transaction(async (tx) => {
+      const [fresh] = await tx
+        .select({ planAiAnalysis: protocolsTable.planAiAnalysis })
+        .from(protocolsTable)
+        .where(eq(protocolsTable.id, id))
+        .for("update");
+      const current: Analysis = ((fresh?.planAiAnalysis as Analysis) ?? {}) as Analysis;
+      if ((current as any).diagnosisSuggestion) {
+        (current as any).archivedDiagnosisSuggestions = [
+          ...(((current as any).archivedDiagnosisSuggestions as unknown[]) ?? []),
+          { archivedAt: new Date().toISOString(), suggestion: (current as any).diagnosisSuggestion },
+        ];
+      }
+      (current as any).diagnosisSuggestion = suggestion;
+      pushHistory(current, force ? "sugestao_diagnostico_repetida" : "sugestao_diagnostico_executada", { fotos: loaded.length });
+      await tx.update(protocolsTable).set({ planAiAnalysis: current }).where(eq(protocolsTable.id, id));
+    });
+    res.json(suggestion);
+  } catch (err) {
+    res.status(502).json({ error: "ai_error", message: `Erro na análise de IA: ${err instanceof Error ? err.message : "desconhecido"}` });
+  }
 });
 
 export default router;

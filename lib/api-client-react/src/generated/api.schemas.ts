@@ -902,6 +902,20 @@ export interface PlanningImageUpdate {
   selectedForExtraction?: boolean;
 }
 
+export interface DiagnosisAiSuggestBody {
+  force?: boolean;
+}
+
+export interface DiagnosisAiSuggestion {
+  introPhraseId?: number | null;
+  phraseIds?: number[];
+  closingPhraseIds?: number[];
+  notes?: string;
+  model?: string;
+  at?: string;
+  [key: string]: unknown;
+ }
+
 export interface PlanAiExtractBody {
   imageIds: number[];
   force?: boolean;
