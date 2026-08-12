@@ -93,6 +93,16 @@ router.post("/protocols", async (req, res): Promise<void> => {
     surgicalDiagrams,
     operativeDescription,
     postopNotes,
+    hospital,
+    utenteNumber,
+    admissionDateTime,
+    dischargeDateTime,
+    nextAppointmentDate,
+    nextAppointmentTime,
+    nextAppointmentLocation,
+    homeMedication,
+    postopRecommendations,
+    labPrediction,
   } = parsed.data;
 
   const [protocol] = await db
@@ -117,6 +127,16 @@ router.post("/protocols", async (req, res): Promise<void> => {
       surgicalDiagrams: surgicalDiagrams ?? null,
       operativeDescription: operativeDescription ?? "",
       postopNotes: postopNotes ?? "",
+      hospital: hospital ?? null,
+      utenteNumber: utenteNumber ?? null,
+      admissionDateTime: admissionDateTime ?? null,
+      dischargeDateTime: dischargeDateTime ?? null,
+      nextAppointmentDate: nextAppointmentDate ?? null,
+      nextAppointmentTime: nextAppointmentTime ?? null,
+      nextAppointmentLocation: nextAppointmentLocation ?? "Clínica da Face",
+      homeMedication: homeMedication ?? "",
+      postopRecommendations: postopRecommendations ?? "",
+      labPrediction: labPrediction ?? null,
     })
     .returning();
 
@@ -319,6 +339,25 @@ router.patch("/protocols/:id", async (req, res): Promise<void> => {
   if (data.operativeDescription !== undefined)
     updateData.operativeDescription = data.operativeDescription;
   if (data.postopNotes !== undefined) updateData.postopNotes = data.postopNotes;
+  if (data.hospital !== undefined) updateData.hospital = data.hospital;
+  if (data.utenteNumber !== undefined)
+    updateData.utenteNumber = data.utenteNumber;
+  if (data.admissionDateTime !== undefined)
+    updateData.admissionDateTime = data.admissionDateTime;
+  if (data.dischargeDateTime !== undefined)
+    updateData.dischargeDateTime = data.dischargeDateTime;
+  if (data.nextAppointmentDate !== undefined)
+    updateData.nextAppointmentDate = data.nextAppointmentDate;
+  if (data.nextAppointmentTime !== undefined)
+    updateData.nextAppointmentTime = data.nextAppointmentTime;
+  if (data.nextAppointmentLocation !== undefined)
+    updateData.nextAppointmentLocation = data.nextAppointmentLocation;
+  if (data.homeMedication !== undefined)
+    updateData.homeMedication = data.homeMedication;
+  if (data.postopRecommendations !== undefined)
+    updateData.postopRecommendations = data.postopRecommendations;
+  if (data.labPrediction !== undefined)
+    updateData.labPrediction = data.labPrediction;
 
   const [protocol] = await db
     .update(protocolsTable)

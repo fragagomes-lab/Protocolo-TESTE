@@ -1291,6 +1291,17 @@ components:
           $ref: "#/components/schemas/SurgicalDiagrams"
         operativeDescription: { type: string }
         postopNotes: { type: string }
+        hospital: { type: ["string", "null"] }
+        utenteNumber: { type: ["string", "null"] }
+        admissionDateTime: { type: ["string", "null"] }
+        dischargeDateTime: { type: ["string", "null"] }
+        nextAppointmentDate: { type: ["string", "null"] }
+        nextAppointmentTime: { type: ["string", "null"] }
+        nextAppointmentLocation: { type: ["string", "null"] }
+        homeMedication: { type: ["string", "null"] }
+        postopRecommendations: { type: ["string", "null"] }
+        labPrediction:
+          $ref: "#/components/schemas/LabPrediction"
         planAiAnalysis:
           $ref: "#/components/schemas/PlanAiAnalysis"
         reopenHistory:
@@ -1347,6 +1358,17 @@ components:
           $ref: "#/components/schemas/SurgicalDiagrams"
         operativeDescription: { type: string }
         postopNotes: { type: string }
+        hospital: { type: string }
+        utenteNumber: { type: string }
+        admissionDateTime: { type: string }
+        dischargeDateTime: { type: string }
+        nextAppointmentDate: { type: string }
+        nextAppointmentTime: { type: string }
+        nextAppointmentLocation: { type: string }
+        homeMedication: { type: string }
+        postopRecommendations: { type: string }
+        labPrediction:
+          $ref: "#/components/schemas/LabPrediction"
 
     ProtocolUpdate:
       type: object
@@ -1387,9 +1409,60 @@ components:
           $ref: "#/components/schemas/SurgicalDiagrams"
         operativeDescription: { type: string }
         postopNotes: { type: string }
+        hospital: { type: string }
+        utenteNumber: { type: string }
+        admissionDateTime: { type: string }
+        dischargeDateTime: { type: string }
+        nextAppointmentDate: { type: string }
+        nextAppointmentTime: { type: string }
+        nextAppointmentLocation: { type: string }
+        homeMedication: { type: string }
+        postopRecommendations: { type: string }
+        labPrediction:
+          $ref: "#/components/schemas/LabPrediction"
         # Only honored on the un-finalize transition: names the clinician who
         # reopened a finalized report. Ignored on all other updates.
         reopenedBy: { type: ["string", "null"] }
+
+    # "Previsão Laboratorial" — structured pre-surgical lab prediction sheet,
+    # mirroring the paper "Projecto de Previsão Laboratorial" document.
+    LabPrediction:
+      type: object
+      properties:
+        mallampati:
+          type: string
+          enum: ["I", "II", "III", "IV", ""]
+        specialCare: { type: string }
+        surgeryStart:
+          type: string
+          enum: [mandibula, maxila, ""]
+        complements:
+          type: object
+          properties:
+            septoplasty: { type: boolean }
+            segmented: { type: boolean }
+            mentoplasty: { type: boolean }
+            atmProsthesis: { type: boolean }
+            other: { type: string }
+        checks:
+          type: array
+          items:
+            $ref: "#/components/schemas/LabPredictionCheck"
+
+    LabPredictionCheck:
+      type: object
+      required: [id]
+      properties:
+        # Stable id of the numbered verification (e.g. "1", "2", ... "9").
+        id: { type: string }
+        # Chosen option, per verification (e.g. "ok", "corrigir", "sim", ...).
+        option: { type: string }
+        side:
+          type: string
+          enum: [D, E, ""]
+        direction: { type: string }
+        valueMm: { type: ["number", "null"] }
+        note: { type: string }
 
     DiagramStroke:
       type: object

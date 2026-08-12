@@ -271,7 +271,36 @@ export const CreateProtocolBody = zod.object({
 }).optional()
 }).optional(),
   "operativeDescription": zod.string().optional(),
-  "postopNotes": zod.string().optional()
+  "postopNotes": zod.string().optional(),
+  "hospital": zod.string().optional(),
+  "utenteNumber": zod.string().optional(),
+  "admissionDateTime": zod.string().optional(),
+  "dischargeDateTime": zod.string().optional(),
+  "nextAppointmentDate": zod.string().optional(),
+  "nextAppointmentTime": zod.string().optional(),
+  "nextAppointmentLocation": zod.string().optional(),
+  "homeMedication": zod.string().optional(),
+  "postopRecommendations": zod.string().optional(),
+  "labPrediction": zod.object({
+  "mallampati": zod.enum(['I', 'II', 'III', 'IV', '']).optional(),
+  "specialCare": zod.string().optional(),
+  "surgeryStart": zod.enum(['mandibula', 'maxila', '']).optional(),
+  "complements": zod.object({
+  "septoplasty": zod.boolean().optional(),
+  "segmented": zod.boolean().optional(),
+  "mentoplasty": zod.boolean().optional(),
+  "atmProsthesis": zod.boolean().optional(),
+  "other": zod.string().optional()
+}).optional(),
+  "checks": zod.array(zod.object({
+  "id": zod.string(),
+  "option": zod.string().optional(),
+  "side": zod.enum(['D', 'E', '']).optional(),
+  "direction": zod.string().optional(),
+  "valueMm": zod.number().nullish(),
+  "note": zod.string().optional()
+})).optional()
+}).optional()
 })
 
 export const CreateProtocolResponse = zod.object({
@@ -505,6 +534,35 @@ export const CreateProtocolResponse = zod.object({
 }).optional(),
   "operativeDescription": zod.string().optional(),
   "postopNotes": zod.string().optional(),
+  "hospital": zod.string().nullish(),
+  "utenteNumber": zod.string().nullish(),
+  "admissionDateTime": zod.string().nullish(),
+  "dischargeDateTime": zod.string().nullish(),
+  "nextAppointmentDate": zod.string().nullish(),
+  "nextAppointmentTime": zod.string().nullish(),
+  "nextAppointmentLocation": zod.string().nullish(),
+  "homeMedication": zod.string().nullish(),
+  "postopRecommendations": zod.string().nullish(),
+  "labPrediction": zod.object({
+  "mallampati": zod.enum(['I', 'II', 'III', 'IV', '']).optional(),
+  "specialCare": zod.string().optional(),
+  "surgeryStart": zod.enum(['mandibula', 'maxila', '']).optional(),
+  "complements": zod.object({
+  "septoplasty": zod.boolean().optional(),
+  "segmented": zod.boolean().optional(),
+  "mentoplasty": zod.boolean().optional(),
+  "atmProsthesis": zod.boolean().optional(),
+  "other": zod.string().optional()
+}).optional(),
+  "checks": zod.array(zod.object({
+  "id": zod.string(),
+  "option": zod.string().optional(),
+  "side": zod.enum(['D', 'E', '']).optional(),
+  "direction": zod.string().optional(),
+  "valueMm": zod.number().nullish(),
+  "note": zod.string().optional()
+})).optional()
+}).optional(),
   "planAiAnalysis": zod.record(zod.string(), zod.unknown()).optional(),
   "reopenHistory": zod.array(zod.object({
   "reopenedAt": zod.string(),
@@ -790,6 +848,35 @@ export const GetProtocolResponse = zod.object({
 }).optional(),
   "operativeDescription": zod.string().optional(),
   "postopNotes": zod.string().optional(),
+  "hospital": zod.string().nullish(),
+  "utenteNumber": zod.string().nullish(),
+  "admissionDateTime": zod.string().nullish(),
+  "dischargeDateTime": zod.string().nullish(),
+  "nextAppointmentDate": zod.string().nullish(),
+  "nextAppointmentTime": zod.string().nullish(),
+  "nextAppointmentLocation": zod.string().nullish(),
+  "homeMedication": zod.string().nullish(),
+  "postopRecommendations": zod.string().nullish(),
+  "labPrediction": zod.object({
+  "mallampati": zod.enum(['I', 'II', 'III', 'IV', '']).optional(),
+  "specialCare": zod.string().optional(),
+  "surgeryStart": zod.enum(['mandibula', 'maxila', '']).optional(),
+  "complements": zod.object({
+  "septoplasty": zod.boolean().optional(),
+  "segmented": zod.boolean().optional(),
+  "mentoplasty": zod.boolean().optional(),
+  "atmProsthesis": zod.boolean().optional(),
+  "other": zod.string().optional()
+}).optional(),
+  "checks": zod.array(zod.object({
+  "id": zod.string(),
+  "option": zod.string().optional(),
+  "side": zod.enum(['D', 'E', '']).optional(),
+  "direction": zod.string().optional(),
+  "valueMm": zod.number().nullish(),
+  "note": zod.string().optional()
+})).optional()
+}).optional(),
   "planAiAnalysis": zod.record(zod.string(), zod.unknown()).optional(),
   "reopenHistory": zod.array(zod.object({
   "reopenedAt": zod.string(),
@@ -1037,6 +1124,35 @@ export const UpdateProtocolBody = zod.object({
 }).optional(),
   "operativeDescription": zod.string().optional(),
   "postopNotes": zod.string().optional(),
+  "hospital": zod.string().optional(),
+  "utenteNumber": zod.string().optional(),
+  "admissionDateTime": zod.string().optional(),
+  "dischargeDateTime": zod.string().optional(),
+  "nextAppointmentDate": zod.string().optional(),
+  "nextAppointmentTime": zod.string().optional(),
+  "nextAppointmentLocation": zod.string().optional(),
+  "homeMedication": zod.string().optional(),
+  "postopRecommendations": zod.string().optional(),
+  "labPrediction": zod.object({
+  "mallampati": zod.enum(['I', 'II', 'III', 'IV', '']).optional(),
+  "specialCare": zod.string().optional(),
+  "surgeryStart": zod.enum(['mandibula', 'maxila', '']).optional(),
+  "complements": zod.object({
+  "septoplasty": zod.boolean().optional(),
+  "segmented": zod.boolean().optional(),
+  "mentoplasty": zod.boolean().optional(),
+  "atmProsthesis": zod.boolean().optional(),
+  "other": zod.string().optional()
+}).optional(),
+  "checks": zod.array(zod.object({
+  "id": zod.string(),
+  "option": zod.string().optional(),
+  "side": zod.enum(['D', 'E', '']).optional(),
+  "direction": zod.string().optional(),
+  "valueMm": zod.number().nullish(),
+  "note": zod.string().optional()
+})).optional()
+}).optional(),
   "reopenedBy": zod.string().nullish()
 })
 
@@ -1271,6 +1387,35 @@ export const UpdateProtocolResponse = zod.object({
 }).optional(),
   "operativeDescription": zod.string().optional(),
   "postopNotes": zod.string().optional(),
+  "hospital": zod.string().nullish(),
+  "utenteNumber": zod.string().nullish(),
+  "admissionDateTime": zod.string().nullish(),
+  "dischargeDateTime": zod.string().nullish(),
+  "nextAppointmentDate": zod.string().nullish(),
+  "nextAppointmentTime": zod.string().nullish(),
+  "nextAppointmentLocation": zod.string().nullish(),
+  "homeMedication": zod.string().nullish(),
+  "postopRecommendations": zod.string().nullish(),
+  "labPrediction": zod.object({
+  "mallampati": zod.enum(['I', 'II', 'III', 'IV', '']).optional(),
+  "specialCare": zod.string().optional(),
+  "surgeryStart": zod.enum(['mandibula', 'maxila', '']).optional(),
+  "complements": zod.object({
+  "septoplasty": zod.boolean().optional(),
+  "segmented": zod.boolean().optional(),
+  "mentoplasty": zod.boolean().optional(),
+  "atmProsthesis": zod.boolean().optional(),
+  "other": zod.string().optional()
+}).optional(),
+  "checks": zod.array(zod.object({
+  "id": zod.string(),
+  "option": zod.string().optional(),
+  "side": zod.enum(['D', 'E', '']).optional(),
+  "direction": zod.string().optional(),
+  "valueMm": zod.number().nullish(),
+  "note": zod.string().optional()
+})).optional()
+}).optional(),
   "planAiAnalysis": zod.record(zod.string(), zod.unknown()).optional(),
   "reopenHistory": zod.array(zod.object({
   "reopenedAt": zod.string(),
@@ -1529,6 +1674,35 @@ export const DuplicateProtocolResponse = zod.object({
 }).optional(),
   "operativeDescription": zod.string().optional(),
   "postopNotes": zod.string().optional(),
+  "hospital": zod.string().nullish(),
+  "utenteNumber": zod.string().nullish(),
+  "admissionDateTime": zod.string().nullish(),
+  "dischargeDateTime": zod.string().nullish(),
+  "nextAppointmentDate": zod.string().nullish(),
+  "nextAppointmentTime": zod.string().nullish(),
+  "nextAppointmentLocation": zod.string().nullish(),
+  "homeMedication": zod.string().nullish(),
+  "postopRecommendations": zod.string().nullish(),
+  "labPrediction": zod.object({
+  "mallampati": zod.enum(['I', 'II', 'III', 'IV', '']).optional(),
+  "specialCare": zod.string().optional(),
+  "surgeryStart": zod.enum(['mandibula', 'maxila', '']).optional(),
+  "complements": zod.object({
+  "septoplasty": zod.boolean().optional(),
+  "segmented": zod.boolean().optional(),
+  "mentoplasty": zod.boolean().optional(),
+  "atmProsthesis": zod.boolean().optional(),
+  "other": zod.string().optional()
+}).optional(),
+  "checks": zod.array(zod.object({
+  "id": zod.string(),
+  "option": zod.string().optional(),
+  "side": zod.enum(['D', 'E', '']).optional(),
+  "direction": zod.string().optional(),
+  "valueMm": zod.number().nullish(),
+  "note": zod.string().optional()
+})).optional()
+}).optional(),
   "planAiAnalysis": zod.record(zod.string(), zod.unknown()).optional(),
   "reopenHistory": zod.array(zod.object({
   "reopenedAt": zod.string(),

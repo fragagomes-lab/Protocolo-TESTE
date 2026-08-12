@@ -83,9 +83,9 @@ export function ProtocolList() {
       case "draft":
         return <Badge variant="outline" className="bg-muted text-muted-foreground uppercase text-[10px] tracking-wider">Rascunho</Badge>;
       case "preop_complete":
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-800 uppercase text-[10px] tracking-wider">Pré-op</Badge>;
+        return <Badge variant="secondary" className="bg-blue-100 text-blue-800 uppercase text-[10px] tracking-wider">Em Preparação</Badge>;
       case "intraop_complete":
-        return <Badge variant="secondary" className="bg-amber-100 text-amber-800 uppercase text-[10px] tracking-wider">Intra-op</Badge>;
+        return <Badge variant="secondary" className="bg-amber-100 text-amber-800 uppercase text-[10px] tracking-wider">Intra-op Registado</Badge>;
       case "finalized":
         return <Badge variant="default" className="uppercase text-[10px] tracking-wider">Finalizado</Badge>;
       default:
@@ -125,8 +125,8 @@ export function ProtocolList() {
           <SelectContent>
             <SelectItem value="all">Todos os Status</SelectItem>
             <SelectItem value="draft">Rascunho</SelectItem>
-            <SelectItem value="preop_complete">Pré-op Concluído</SelectItem>
-            <SelectItem value="intraop_complete">Intra-op Concluído</SelectItem>
+            <SelectItem value="preop_complete">Em Preparação</SelectItem>
+            <SelectItem value="intraop_complete">Intra-op Registado</SelectItem>
             <SelectItem value="finalized">Finalizado</SelectItem>
           </SelectContent>
         </Select>

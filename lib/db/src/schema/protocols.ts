@@ -29,6 +29,18 @@ export const protocolsTable = pgTable("protocols", {
   reopenHistory: jsonb("reopen_history"),
   operativeDescription: text("operative_description").default(""),
   postopNotes: text("postop_notes").default(""),
+  // Dados de internamento / Nota de Alta
+  hospital: text("hospital"),
+  utenteNumber: text("utente_number"),
+  admissionDateTime: text("admission_date_time"),
+  dischargeDateTime: text("discharge_date_time"),
+  nextAppointmentDate: text("next_appointment_date"),
+  nextAppointmentTime: text("next_appointment_time"),
+  nextAppointmentLocation: text("next_appointment_location").default("Clínica da Face"),
+  homeMedication: text("home_medication").default(""),
+  postopRecommendations: text("postop_recommendations").default(""),
+  // "Previsão Laboratorial" — folha estruturada pré-cirúrgica
+  labPrediction: jsonb("lab_prediction"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

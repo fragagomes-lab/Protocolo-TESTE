@@ -26,9 +26,9 @@ export function Dashboard() {
       case "draft":
         return <Badge variant="outline" className="bg-muted text-muted-foreground uppercase text-[10px] tracking-wider">Rascunho</Badge>;
       case "preop_complete":
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-800 uppercase text-[10px] tracking-wider">Pré-op Concluído</Badge>;
+        return <Badge variant="secondary" className="bg-blue-100 text-blue-800 uppercase text-[10px] tracking-wider">Em Preparação</Badge>;
       case "intraop_complete":
-        return <Badge variant="secondary" className="bg-amber-100 text-amber-800 uppercase text-[10px] tracking-wider">Intra-op Concluído</Badge>;
+        return <Badge variant="secondary" className="bg-amber-100 text-amber-800 uppercase text-[10px] tracking-wider">Intra-op Registado</Badge>;
       case "finalized":
         return <Badge variant="default" className="uppercase text-[10px] tracking-wider">Finalizado</Badge>;
       default:

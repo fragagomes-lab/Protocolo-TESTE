@@ -39,6 +39,8 @@ import { AiProposalsReview } from "./form-sections/plan-ai-panel";
 import { ClinicalPhotosSection } from "./form-sections/clinical-photos-section";
 import { Files3dSection } from "./form-sections/files-3d-section";
 import { SurgicalDiagramsSection } from "./form-sections/surgical-diagrams-section";
+import { LabPredictionSection } from "./form-sections/lab-prediction-section";
+import { statusLabel } from "@/lib/status-labels";
 
 const STEPS = [
   { id: 1, title: "Identificação", label: "Dados Básicos" },
@@ -109,6 +111,16 @@ export function ProtocolForm() {
         surgicalDiagrams: protocol.surgicalDiagrams || {},
         operativeDescription: protocol.operativeDescription || "",
         postopNotes: protocol.postopNotes || "",
+        hospital: protocol.hospital || undefined,
+        utenteNumber: protocol.utenteNumber || undefined,
+        admissionDateTime: protocol.admissionDateTime || undefined,
+        dischargeDateTime: protocol.dischargeDateTime || undefined,
+        nextAppointmentDate: protocol.nextAppointmentDate || undefined,
+        nextAppointmentTime: protocol.nextAppointmentTime || undefined,
+        nextAppointmentLocation: protocol.nextAppointmentLocation || "Clínica da Face",
+        homeMedication: protocol.homeMedication || "",
+        postopRecommendations: protocol.postopRecommendations || "",
+        labPrediction: protocol.labPrediction || {},
       });
     }
   }, [protocol]);
@@ -123,6 +135,16 @@ export function ProtocolForm() {
     const m = ref.getMonth() - birth.getMonth();
     if (m < 0 || (m === 0 && ref.getDate() < birth.getDate())) age--;
     return age >= 0 && age < 130 ? age : undefined;
+  };
+
+  // Duração do internamento calculada (ex: "48 horas")
+  const stayDurationLabel = (admission?: string | null, discharge?: string | null): string | null => {
+    if (!admission || !discharge) return null;
+    const a = new Date(admission);
+    const d = new Date(discharge);
+    if (isNaN(a.getTime()) || isNaN(d.getTime()) || d <= a) return null;
+    const hours = Math.round((d.getTime() - a.getTime()) / 3600000);
+    return `${hours} horas`;
   };
 
   // Update Form Data Helper
@@ -258,7 +280,7 @@ export function ProtocolForm() {
                   formData.status === ProtocolStatus.finalized ? "bg-primary text-white" :
                   "bg-blue-50 text-blue-700"
                 }>
-                  {formData.status?.replace("_", " ")}
+                  {statusLabel(formData.status)}
                 </Badge>
               )}
             </div>
@@ -479,6 +501,94 @@ export function ProtocolForm() {
                 </CardContent>
               </Card>
 
+              <Card className="shadow-xs border-border/50">
+                <CardHeader>
+                  <CardTitle className="uppercase tracking-widest text-sm text-primary">Dados da Cirurgia &amp; Internamento</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="hospital" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Hospital</Label>
+                      <Input 
+                        id="hospital" 
+                        value={formData.hospital || ""} 
+                        onChange={(e) => updateForm("hospital", e.target.value)} 
+                        disabled={isFinalized}
+                        placeholder="Ex: Complexo Hospitalar das Torres de Lisboa"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="utenteNumber" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Nº de Utente</Label>
+                      <Input 
+                        id="utenteNumber" 
+                        value={formData.utenteNumber || ""} 
+                        onChange={(e) => updateForm("utenteNumber", e.target.value)} 
+                        disabled={isFinalized}
+                        className="font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="admissionDateTime" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Internamento (data e hora)</Label>
+                      <Input 
+                        id="admissionDateTime" 
+                        type="datetime-local"
+                        value={formData.admissionDateTime || ""} 
+                        onChange={(e) => updateForm("admissionDateTime", e.target.value)} 
+                        disabled={isFinalized}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="dischargeDateTime" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Alta (data e hora)</Label>
+                      <Input 
+                        id="dischargeDateTime" 
+                        type="datetime-local"
+                        value={formData.dischargeDateTime || ""} 
+                        onChange={(e) => updateForm("dischargeDateTime", e.target.value)} 
+                        disabled={isFinalized}
+                      />
+                    </div>
+                  </div>
+                  {stayDurationLabel(formData.admissionDateTime, formData.dischargeDateTime) && (
+                    <p className="text-sm text-muted-foreground">
+                      Duração do internamento: <span className="font-semibold text-foreground">{stayDurationLabel(formData.admissionDateTime, formData.dischargeDateTime)}</span>
+                    </p>
+                  )}
+                  <div className="grid grid-cols-3 gap-6 pt-4 border-t border-border/50">
+                    <div className="space-y-2">
+                      <Label htmlFor="nextAppointmentDate" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Próxima Consulta — Data</Label>
+                      <Input 
+                        id="nextAppointmentDate" 
+                        type="date"
+                        value={formData.nextAppointmentDate || ""} 
+                        onChange={(e) => updateForm("nextAppointmentDate", e.target.value)} 
+                        disabled={isFinalized}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="nextAppointmentTime" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Hora</Label>
+                      <Input 
+                        id="nextAppointmentTime" 
+                        type="time"
+                        value={formData.nextAppointmentTime || ""} 
+                        onChange={(e) => updateForm("nextAppointmentTime", e.target.value)} 
+                        disabled={isFinalized}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="nextAppointmentLocation" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Local</Label>
+                      <Input 
+                        id="nextAppointmentLocation" 
+                        value={formData.nextAppointmentLocation ?? "Clínica da Face"} 
+                        onChange={(e) => updateForm("nextAppointmentLocation", e.target.value)} 
+                        disabled={isFinalized}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               <TeamSection 
                 team={formData.team || {}} 
                 updateTeam={(team) => updateForm("team", team)} 
@@ -497,6 +607,13 @@ export function ProtocolForm() {
                 updateDiagnosis={(diag) => updateForm("preopDiagnosis", diag)}
                 isFinalized={isFinalized}
               />
+              <div className="mt-6">
+                <LabPredictionSection
+                  value={formData.labPrediction || {}}
+                  onChange={(lp) => updateForm("labPrediction", lp)}
+                  isFinalized={isFinalized}
+                />
+              </div>
             </div>
           )}
 
@@ -541,6 +658,10 @@ export function ProtocolForm() {
                 updateDescription={(desc) => updateForm("operativeDescription", desc)}
                 notes={formData.postopNotes || ""}
                 updateNotes={(notes) => updateForm("postopNotes", notes)}
+                homeMedication={formData.homeMedication || ""}
+                updateHomeMedication={(v) => updateForm("homeMedication", v)}
+                recommendations={formData.postopRecommendations || ""}
+                updateRecommendations={(v) => updateForm("postopRecommendations", v)}
                 isFinalized={isFinalized}
                 formData={formData as ProtocolInput}
               />

@@ -1,0 +1,44 @@
+Atualiza a aplicação Protocolo Cirúrgico Ortognático da Clínica da Face. Mantém a estrutura atual (Dashboard, Protocolos, Templates, Frases Clínicas, Informação Clínica), o visual existente (teal #2D6B79, Roboto, sidebar escura), os 4 estados atuais (draft, preop_complete, intraop_complete, finalized), o bloqueio de protocolos finalizados com reabertura auditada, e a geração automática da descrição operatória. Na interface, os estados devem aparecer com etiquetas claras em português que reflitam as etapas de preenchimento: Rascunho → Em Preparação (dia da preparação / cirurgia virtual concluída) → Intra-op registado → Finalizado. Anexo exemplos reais de Notas de Alta (dois formatos: Clínica da Face e O Bloco) e do “Projecto de Previsão Laboratorial” — usa-os como referência rigorosa de estrutura, conteúdo e tom.
+
+1. Novos campos no protocolo (necessários para a Nota de Alta)
+Adicionar ao schema e ao formulário de Identificação/Dados da cirurgia: Hospital · Nº de utente · Data e hora de internamento · Data e hora de alta · Duração do internamento (calculada, ex.: “48 horas”) · Próxima consulta (data, hora, local — predefinição “Clínica da Face”) · Medicação para domicílio (texto, com apoio das Frases Clínicas) · Recomendações pós-operatórias (texto separado das observações internas, com apoio das Frases Clínicas). Manter postopNotes como observações internas.
+
+2. Nova secção “Previsão Laboratorial”
+A checklist genérica pré-operatória atual (ECG, jejum, consentimento…) mantém-se, mas SEM o item “Reserva de Sangue” — remover em todos os sítios onde apareça (seeds, templates, frontend). Criar uma secção nova e distinta chamada “Previsão Laboratorial”, estruturada como o documento anexo, com estas subsecções bem visíveis:
+
+	•	Mallampati: seleção I–IV
+	•	Cuidados Especiais: campo de texto editável (ex.: asma, anticoagulação, alergias)
+	•	Início da Cirurgia: escolha Mandíbula / Maxila
+	•	Complementos: checkboxes Septoplastia, Segmentar, Mentoplastia, Prótese ATM + campo de texto livre para outros
+	•	Verificações numeradas — incluir APENAS estas, mantendo o formato do documento original (opções OK/corrigir, direção subir/descer e lado D/E, campo numérico em mm quando aplicável):
+1 – Desvio da pirâmide nasal? (Não/Sim · D/E · corrigir)
+2 – Nivelamento transversal do plano oclusal superior (OK / mais alto E-D)
+3 – Posição da linha média interdentária superior (OK / inclinada / desviada E-D)
+4 – Exposição dos incisivos superiores – correção (OK / sobe-desce X mm no bordo incisal, após nivelamento)
+6 – Correção da linha média interdentária superior (ponto de referência: ponto interradicular superior)
+7 – Posição da linha média interdentária inferior (OK / alinhada com a superior / desviada da LMF D-E)
+8 – Material dentário – classe I canina bilateral (OK / segmentar em 2-3 partes)
+9 – Discrepância transversal maxilo-mandibular (OK / corrigir com segmentação)
+NÃO incluir as verificações 5, 10, 11, 12 e 13 do documento original — remoção intencional. Pequenos ajustes de texto às verificações mantidas são aceitáveis desde que o sentido clínico se preserve.
+
+3. Plano cirúrgico
+Remover “SARPE” das opções de osteotomia da maxila. Adicionar “Prótese ATM” às opções rápidas de procedimentos associados, mantendo a possibilidade de texto livre (nome/detalhes/lado).
+
+4. Geração de PDF/Impressão com seleção de secções (obrigatório)
+Antes de gerar o PDF ou imprimir, o utilizador seleciona por checkboxes as secções a incluir. Nunca gerar automaticamente com tudo. O PDF respeita rigorosamente a seleção — secções não escolhidas não aparecem de forma nenhuma.
+Secções selecionáveis: Identificação do doente (nome, DN, idade, sexo, nº processo, nº utente) · Dados da cirurgia (data, hospital, cirurgião, datas/horas de internamento e alta, duração) · Equipa cirúrgica · Diagnóstico · Previsão Laboratorial completa (Mallampati + Cuidados Especiais + Início + Complementos + verificações) · Checklist pré-operatória · Plano cirúrgico com movimentos em mm · Imagens de planeamento · Sequência cirúrgica com tempos · Registo intra-operatório · Materiais de osteossíntese (com referências e lotes) · Relato Operatório · Recomendações pós-operatórias · Medicação para domicílio · Próxima consulta · Observações internas · Campo livre / notas adicionais.
+Presets (botões no topo do seletor; o utilizador pode partir de um preset e ajustar os checkboxes antes de confirmar):
+
+	•	Nota de Alta — Clínica da Face: Identificação + Dados da cirurgia + Diagnóstico + Relato Operatório + Pós-operatório/Recomendações + Resumo, com a estrutura, ordem e tom dos exemplos anexos da Clínica da Face (secções DIAGNÓSTICO / CIRURGIA / PÓS-OPERATÓRIO / RESUMO). O texto do Diagnóstico pode ser gerado a partir do diagnóstico estruturado, no estilo dos exemplos.
+	•	Nota de Alta — Doente (formato O Bloco): Identificação + Dados da cirurgia + Relato Operatório + Recomendações + Medicação para domicílio + Próxima consulta. Conteúdo simples e restrito: apenas descrição clara dos procedimentos realizados, sem diagnóstico esquelético, sem planeamento, sem informação interna — estrutura igual ao exemplo anexo do O Bloco.
+	•	Protocolo Interno Completo: todas as secções.
+	•	Checklist Dia da Cirurgia: Identificação + Previsão Laboratorial completa + Checklist pré-operatória.
+	•	Apenas Relato Operatório: Identificação + Relato Operatório.
+Formato: A4, pré-visualização antes de gerar, cabeçalho com o logótipo (attached_assets/clinicadaface-logo.gif), rodapé com “Complexo Hospitalar das Torres de Lisboa · Rua Tomás da Fonseca, Torre F, Piso 1, 1600-209 Lisboa – Portugal · Tel. +351 21 721 09 00 · www.clinicadaface.com · clinica@clinicadaface.com” e, nas Notas de Alta, a menção legal: “Relatório ao abrigo do Artigo 98, § 1 e 2 do Código Deontológico da Ordem dos Médicos. Relatório assinado digitalmente. Esta é uma impressão do original que está disponível para consulta, nos termos da Lei.” Bloco de assinatura: “A. Matos da Fonseca — Cirurgia Maxilo-Facial”.
+
+5. Frases Clínicas pré-carregadas
+Adicionar às Frases Clínicas (seed idempotente, sem apagar frases personalizadas existentes) os blocos-tipo dos exemplos anexos, por categoria (Cirurgia, Pós-operatório, Medicação, Recomendações): “Sob anestesia geral, procedemos a:” · “Osteotomia de LeFort I para reposicionamento tridimensional do maxilar superior. O maxilar foi fixado com placas e parafusos de titânio.” (variante: com segmentação em 2/3/4 partes por distal dos laterais) · “Osteotomias sagitais dos ramos ascendentes da mandíbula com preservação do pedículo vásculo-nervoso. Fixação rígida bilateral com uma placa de BSSO e 4 parafusos.” · “Mentoplastia de avanço. Fixação com placa de titânio especial de mento e 4 parafusos.” (variante: duas placas lateralizadas por défice de altura central) · “Septoplastia simultânea por desvio e remoção de mucocelos dos seios maxilares.” · “Suturas com pontos reabsorvíveis.” · “A intervenção e o período pós-operatório decorreram sem complicações.” · “Foi fornecido ao doente orientação pós-operatória terapêutica e alimentar.” · “Foi medicado com antibióticos, anti-inflamatórios esteróides e não esteróides, analgésicos e aplicação de frio local.” (variantes: protetor gástrico, descongestionante nasal, Hiloterm) · “Foi reinstituída precocemente a terapêutica ortodôntica.” · “Iniciou a tracção elástica no pós-operatório imediato e deve mantê-la até melhoria da mordida.” · “Intervenção cirúrgica de elevada dificuldade técnica.”
+
+6. Regras gerais
+Não alterar dados de protocolos existentes; migrações de schema com valores por omissão seguros. Manter Templates e duplicação de protocolos funcionais; atualizar os templates pré-configurados para refletir a remoção do SARPE e da Reserva de Sangue. O PDF nunca mostra informação de secções não escolhidas. Correr typecheck e build no fim. Se algum ponto for ambíguo, pergunta antes de implementar.
+

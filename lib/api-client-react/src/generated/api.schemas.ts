@@ -486,6 +486,61 @@ export interface SurgicalDiagrams {
   molar?: DiagramAnnotation;
 }
 
+export type LabPredictionMallampati = typeof LabPredictionMallampati[keyof typeof LabPredictionMallampati];
+
+
+export const LabPredictionMallampati = {
+  I: 'I',
+  II: 'II',
+  III: 'III',
+  IV: 'IV',
+  '': '',
+} as const;
+
+export type LabPredictionSurgeryStart = typeof LabPredictionSurgeryStart[keyof typeof LabPredictionSurgeryStart];
+
+
+export const LabPredictionSurgeryStart = {
+  mandibula: 'mandibula',
+  maxila: 'maxila',
+  '': '',
+} as const;
+
+export type LabPredictionCheckSide = typeof LabPredictionCheckSide[keyof typeof LabPredictionCheckSide];
+
+
+export const LabPredictionCheckSide = {
+  D: 'D',
+  E: 'E',
+  '': '',
+} as const;
+
+export interface LabPredictionCheck {
+  id: string;
+  option?: string;
+  side?: LabPredictionCheckSide;
+  direction?: string;
+  /** @nullable */
+  valueMm?: number | null;
+  note?: string;
+}
+
+export type LabPredictionComplements = {
+  septoplasty?: boolean;
+  segmented?: boolean;
+  mentoplasty?: boolean;
+  atmProsthesis?: boolean;
+  other?: string;
+};
+
+export interface LabPrediction {
+  mallampati?: LabPredictionMallampati;
+  specialCare?: string;
+  surgeryStart?: LabPredictionSurgeryStart;
+  complements?: LabPredictionComplements;
+  checks?: LabPredictionCheck[];
+}
+
 export interface PlanAiAnalysis { [key: string]: unknown }
 
 export interface ReopenEvent {
@@ -519,6 +574,25 @@ export interface Protocol {
   surgicalDiagrams?: SurgicalDiagrams;
   operativeDescription?: string;
   postopNotes?: string;
+  /** @nullable */
+  hospital?: string | null;
+  /** @nullable */
+  utenteNumber?: string | null;
+  /** @nullable */
+  admissionDateTime?: string | null;
+  /** @nullable */
+  dischargeDateTime?: string | null;
+  /** @nullable */
+  nextAppointmentDate?: string | null;
+  /** @nullable */
+  nextAppointmentTime?: string | null;
+  /** @nullable */
+  nextAppointmentLocation?: string | null;
+  /** @nullable */
+  homeMedication?: string | null;
+  /** @nullable */
+  postopRecommendations?: string | null;
+  labPrediction?: LabPrediction;
   planAiAnalysis?: PlanAiAnalysis;
   reopenHistory?: ReopenEvent[];
   createdAt: string;
@@ -563,6 +637,16 @@ export interface ProtocolInput {
   surgicalDiagrams?: SurgicalDiagrams;
   operativeDescription?: string;
   postopNotes?: string;
+  hospital?: string;
+  utenteNumber?: string;
+  admissionDateTime?: string;
+  dischargeDateTime?: string;
+  nextAppointmentDate?: string;
+  nextAppointmentTime?: string;
+  nextAppointmentLocation?: string;
+  homeMedication?: string;
+  postopRecommendations?: string;
+  labPrediction?: LabPrediction;
 }
 
 export type ProtocolUpdatePatientGender = typeof ProtocolUpdatePatientGender[keyof typeof ProtocolUpdatePatientGender];
@@ -603,6 +687,16 @@ export interface ProtocolUpdate {
   surgicalDiagrams?: SurgicalDiagrams;
   operativeDescription?: string;
   postopNotes?: string;
+  hospital?: string;
+  utenteNumber?: string;
+  admissionDateTime?: string;
+  dischargeDateTime?: string;
+  nextAppointmentDate?: string;
+  nextAppointmentTime?: string;
+  nextAppointmentLocation?: string;
+  homeMedication?: string;
+  postopRecommendations?: string;
+  labPrediction?: LabPrediction;
   /** @nullable */
   reopenedBy?: string | null;
 }

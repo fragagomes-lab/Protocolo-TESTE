@@ -1,3 +1,4 @@
 - [Origem do projeto](project-origin.md) — app copiada do ZIP original "Protocolo Operatório"; sem autenticação e sem dados dos 548 protocolos originais.
 - [Codegen Orval/Zod](orval-codegen.md) — orval fixo em 8.21.0; versões ≥8.23 geram API zod v4 e partem o codegen.
+- [Impressão e Notas de Alta](print-notas-alta.md) — seleção de secções obrigatória, presets fixos, verificações 5/10-13, Reserva de Sangue e SARPE removidos por ordem do cirurgião.
 - [Análise IA do planeamento](plan-ai-analysis.md) — IA só por botão, output original imutável (arquivar, nunca substituir), confirmação por item + global antes de aplicar ao plano.

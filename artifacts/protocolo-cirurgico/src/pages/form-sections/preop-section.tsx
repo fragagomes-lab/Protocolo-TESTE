@@ -21,8 +21,7 @@ const DEFAULT_CHECKLIST = [
   "Avaliação Pré-Anestésica",
   "Modelos / Goteiras Cirúrgicas",
   "Planeamento Virtual (VSP)",
-  "Material Osteossíntese Específico",
-  "Reserva de Sangue"
+  "Material Osteossíntese Específico"
 ];
 
 export function PreopSection({ checklist, updateChecklist, diagnosis, updateDiagnosis, isFinalized }: PreopSectionProps) {

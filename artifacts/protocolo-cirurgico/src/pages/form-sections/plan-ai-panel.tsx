@@ -394,7 +394,8 @@ export function AiProposalsReview({
       const num = Number(v);
       if (t.startsWith("maxilla.segment.")) {
         const [, , segName, field] = t.split(".");
-        next.maxilla = next.maxilla ?? { included: true };
+        // Abrir automaticamente a secção ao receber valores da IA
+        next.maxilla = { ...(next.maxilla ?? {}), included: true };
         const segs: any[] = (next.maxilla.segments as any[]) ?? [{ segment: "total", movements: {} }];
         let seg = segs.find((s) => s.segment === segName);
         if (!seg) { seg = { segment: segName, movements: {} }; segs.push(seg); }
@@ -403,7 +404,7 @@ export function AiProposalsReview({
         applied++;
       } else if (t.startsWith("maxilla.")) {
         const fields = resolveFields(t.split(".")[1], p.side);
-        next.maxilla = next.maxilla ?? { included: true };
+        next.maxilla = { ...(next.maxilla ?? {}), included: true };
         const segs: any[] = (next.maxilla.segments as any[]) ?? [];
         if (segs.length === 0) segs.push({ segment: "total", movements: {} });
         for (const f of fields) segs[0].movements = { ...(segs[0].movements ?? {}), [f]: num };
@@ -411,13 +412,13 @@ export function AiProposalsReview({
         applied++;
       } else if (t.startsWith("mandible.")) {
         const fields = resolveFields(t.split(".")[1], p.side);
-        next.mandible = next.mandible ?? { included: true };
+        next.mandible = { ...(next.mandible ?? {}), included: true };
         for (const f of fields) setMove(next.mandible, f, num);
         applied++;
       } else if (t.startsWith("chin.")) {
         let field = t.split(".")[1];
         if (field === "transverse") field = "transverseRight";
-        next.chin = next.chin ?? { included: true };
+        next.chin = { ...(next.chin ?? {}), included: true };
         setMove(next.chin, field, num);
         applied++;
       }

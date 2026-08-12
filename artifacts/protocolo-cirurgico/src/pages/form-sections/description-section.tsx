@@ -15,6 +15,10 @@ interface DescriptionSectionProps {
   updateDescription: (desc: string) => void;
   notes: string;
   updateNotes: (notes: string) => void;
+  homeMedication: string;
+  updateHomeMedication: (v: string) => void;
+  recommendations: string;
+  updateRecommendations: (v: string) => void;
   isFinalized: boolean;
   formData: ProtocolInput;
 }
@@ -25,6 +29,10 @@ export function DescriptionSection({
   updateDescription, 
   notes, 
   updateNotes, 
+  homeMedication,
+  updateHomeMedication,
+  recommendations,
+  updateRecommendations,
   isFinalized,
   formData 
 }: DescriptionSectionProps) {
@@ -46,10 +54,21 @@ export function DescriptionSection({
     }
   };
 
+  // A frase clicada é inserida no último campo com foco (descritivo, notas,
+  // medicação para domicílio ou recomendações).
+  const [activeField, setActiveField] = useState<"description" | "notes" | "homeMedication" | "recommendations">("description");
+
   const insertPhrase = (text: string) => {
     if (isFinalized) return;
-    const separator = description.length > 0 && !description.endsWith('\n') ? '\n\n' : '';
-    updateDescription(`${description}${separator}${text}`);
+    const fields = {
+      description: { value: description, set: updateDescription },
+      notes: { value: notes, set: updateNotes },
+      homeMedication: { value: homeMedication, set: updateHomeMedication },
+      recommendations: { value: recommendations, set: updateRecommendations },
+    } as const;
+    const f = fields[activeField];
+    const separator = f.value.length > 0 && !f.value.endsWith('\n') ? '\n\n' : '';
+    f.set(`${f.value}${separator}${text}`);
   };
 
   // Group phrases by their actual category (Portuguese labels come from the
@@ -85,6 +104,7 @@ export function DescriptionSection({
             <Textarea 
               value={description} 
               onChange={(e) => updateDescription(e.target.value)} 
+              onFocus={() => setActiveField("description")}
               disabled={isFinalized}
               className="min-h-[400px] font-serif leading-relaxed text-sm resize-y"
               placeholder="Descreva a técnica cirúrgica, acessos, achados intra-operatórios, osteotomias e encerramento..."
@@ -94,12 +114,48 @@ export function DescriptionSection({
 
         <Card className="shadow-xs border-border/50">
           <CardHeader>
-            <CardTitle className="uppercase tracking-widest text-sm text-primary">Instruções / Notas Pós-Operatórias</CardTitle>
+            <CardTitle className="uppercase tracking-widest text-sm text-primary">Recomendações Pós-Operatórias</CardTitle>
+            <CardDescription>Texto destinado ao doente — aparece nas Notas de Alta</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Textarea 
+              value={recommendations} 
+              onChange={(e) => updateRecommendations(e.target.value)} 
+              onFocus={() => setActiveField("recommendations")}
+              disabled={isFinalized}
+              className="min-h-[150px] font-serif text-sm"
+              placeholder="Ex: A intervenção e o período pós-operatório decorreram sem complicações. Foi fornecido ao doente orientação pós-operatória terapêutica e alimentar..."
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-xs border-border/50">
+          <CardHeader>
+            <CardTitle className="uppercase tracking-widest text-sm text-primary">Medicação para Domicílio</CardTitle>
+            <CardDescription>Aparece nas Notas de Alta</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Textarea 
+              value={homeMedication} 
+              onChange={(e) => updateHomeMedication(e.target.value)} 
+              onFocus={() => setActiveField("homeMedication")}
+              disabled={isFinalized}
+              className="min-h-[120px] font-serif text-sm"
+              placeholder="Ex: Foi medicado com antibióticos, anti-inflamatórios esteróides e não esteróides, analgésicos e aplicação de frio local..."
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-xs border-border/50">
+          <CardHeader>
+            <CardTitle className="uppercase tracking-widest text-sm text-primary">Observações Internas</CardTitle>
+            <CardDescription>Notas internas — não aparecem nas Notas de Alta</CardDescription>
           </CardHeader>
           <CardContent>
             <Textarea 
               value={notes} 
               onChange={(e) => updateNotes(e.target.value)} 
+              onFocus={() => setActiveField("notes")}
               disabled={isFinalized}
               className="min-h-[150px] font-serif text-sm"
               placeholder="Instruções para a enfermaria, medicação específica, cuidados com elásticos..."

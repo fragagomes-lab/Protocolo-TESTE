@@ -3,8 +3,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { SurgicalPlan, OrthoMovements } from "@workspace/api-client-react";
+import { SurgicalPlan, OrthoMovements, AssociatedProcedure } from "@workspace/api-client-react";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { X } from "lucide-react";
 
 interface PlanSectionProps {
   plan: SurgicalPlan;
@@ -50,6 +52,24 @@ export function PlanSection({ plan, updatePlan, isFinalized }: PlanSectionProps)
     if (isFinalized) return;
     const chin = plan.chin || { included: true };
     updatePlan({ ...plan, chin: { ...chin, movements: { ...chin.movements, [field]: value } } });
+  };
+
+  // Procedimentos associados (Septoplastia, Prótese ATM, etc.)
+  const addAssociated = (name: string) => {
+    if (isFinalized) return;
+    updatePlan({ ...plan, associated: [...(plan.associated || []), { name, details: "", side: "" }] });
+  };
+
+  const updateAssociated = (idx: number, patch: Partial<AssociatedProcedure>) => {
+    if (isFinalized) return;
+    const list = [...(plan.associated || [])];
+    list[idx] = { ...list[idx], ...patch };
+    updatePlan({ ...plan, associated: list });
+  };
+
+  const removeAssociated = (idx: number) => {
+    if (isFinalized) return;
+    updatePlan({ ...plan, associated: (plan.associated || []).filter((_, i) => i !== idx) });
   };
 
   // Editor de segmentos da maxila segmentada (sem tocar no segmento "total")
@@ -192,7 +212,6 @@ export function PlanSection({ plan, updatePlan, isFinalized }: PlanSectionProps)
                     <SelectItem value="LeFort_I">LeFort I Standard</SelectItem>
                     <SelectItem value="segmented">LeFort I Segmentada</SelectItem>
                     <SelectItem value="LeFort_II">LeFort II</SelectItem>
-                    <SelectItem value="SARPE">SARPE</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -324,6 +343,80 @@ export function PlanSection({ plan, updatePlan, isFinalized }: PlanSectionProps)
             </div>
           </CardContent>
         )}
+      </Card>
+
+      {/* PROCEDIMENTOS ASSOCIADOS */}
+      <Card className="shadow-xs border-border/50">
+        <CardHeader className="py-4">
+          <CardTitle className="uppercase tracking-widest text-base text-foreground">Procedimentos Associados</CardTitle>
+          <CardDescription>Septoplastia, turbinectomia, extrações, Prótese ATM...</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {["Septoplastia", "Turbinectomia", "Extração de dentes inclusos", "Enxerto ósseo", "Prótese ATM"].map((name) => (
+              <Button
+                key={name}
+                type="button"
+                variant="outline"
+                size="sm"
+                className="text-xs"
+                disabled={isFinalized || (plan.associated || []).some((p) => p.name === name)}
+                onClick={() => addAssociated(name)}
+              >
+                + {name}
+              </Button>
+            ))}
+          </div>
+          {(plan.associated || []).length > 0 && (
+            <div className="space-y-2">
+              {(plan.associated || []).map((proc, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <Input
+                    value={proc.name}
+                    onChange={(e) => updateAssociated(idx, { name: e.target.value })}
+                    disabled={isFinalized}
+                    placeholder="Procedimento"
+                    className="flex-1"
+                  />
+                  <Input
+                    value={proc.details || ""}
+                    onChange={(e) => updateAssociated(idx, { details: e.target.value })}
+                    disabled={isFinalized}
+                    placeholder="Detalhes"
+                    className="flex-1"
+                  />
+                  <Select
+                    value={proc.side || "none"}
+                    onValueChange={(v) => updateAssociated(idx, { side: (v === "none" ? "" : v) as any })}
+                    disabled={isFinalized}
+                  >
+                    <SelectTrigger className="w-[130px]">
+                      <SelectValue placeholder="Lado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">—</SelectItem>
+                      <SelectItem value="bilateral">Bilateral</SelectItem>
+                      <SelectItem value="left">Esquerdo</SelectItem>
+                      <SelectItem value="right">Direito</SelectItem>
+                      <SelectItem value="central">Central</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    disabled={isFinalized}
+                    onClick={() => removeAssociated(idx)}
+                    className="text-muted-foreground hover:text-destructive shrink-0"
+                    aria-label="Remover procedimento"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
       </Card>
 
       {/* PARTE NASAL */}
