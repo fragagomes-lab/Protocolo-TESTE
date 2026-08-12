@@ -24,17 +24,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-background">
       {/* Barra superior — apenas em telemóvel/tablet pequeno */}
+      {/* Sem logotipo aqui — em ecrã pequeno basta o logotipo grande do Dashboard */}
       <div className="md:hidden bg-sidebar border-b border-sidebar-border sticky top-0 z-20 print:hidden">
-        <div className="flex items-center justify-between px-4 h-16">
-          <img src={logo} alt="Clínica da Face" className="h-9 object-contain" style={{ filter: 'brightness(0) invert(1)' }} />
-          <Link
-            href="/protocols/new"
-            className="flex items-center px-3 py-1.5 text-xs font-medium text-primary bg-white rounded-sm uppercase tracking-wider"
-          >
-            <PlusCircle className="mr-1.5 h-4 w-4" /> Novo
-          </Link>
-        </div>
-        <nav className="flex overflow-x-auto px-2 pb-1 gap-1">
+        <nav className="flex items-center overflow-x-auto px-2 py-1.5 gap-1">
           {navigation.map((item) => {
             const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
             return (
@@ -53,6 +45,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
+          <Link
+            href="/protocols/new"
+            className="ml-auto flex items-center px-3 py-1.5 text-xs font-medium text-primary bg-white rounded-sm uppercase tracking-wider whitespace-nowrap"
+          >
+            <PlusCircle className="mr-1.5 h-4 w-4" /> Novo
+          </Link>
         </nav>
       </div>
 
