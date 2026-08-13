@@ -9,7 +9,7 @@ import {
   ChevronRight
 } from "lucide-react";
 import { format } from "date-fns";
-import logo from "@assets/clinicadaface-logo.svg";
+import logo from "@assets/clinicadaface-logo.gif";
 import { ptBR } from "date-fns/locale";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
