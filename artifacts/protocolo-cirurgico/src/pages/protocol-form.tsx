@@ -36,6 +36,7 @@ import { IntraopSection } from "./form-sections/intraop-section";
 import { DescriptionSection } from "./form-sections/description-section";
 import { PlanningSection } from "./form-sections/planning-section";
 import { AiProposalsReview } from "./form-sections/plan-ai-panel";
+import { PlanReferenceImages } from "./form-sections/plan-reference-images";
 import { ClinicalPhotosSection } from "./form-sections/clinical-photos-section";
 import { Files3dSection } from "./form-sections/files-3d-section";
 import { SurgicalDiagramsSection } from "./form-sections/surgical-diagrams-section";
@@ -47,7 +48,7 @@ const STEPS = [
   { id: 1, title: "Identificação", label: "Dados Básicos" },
   { id: 2, title: "Fotografia Clínica", label: "Imagens" },
   { id: 3, title: "Checklist", label: "Pré-op" },
-  { id: 4, title: "Planeamento 3D", label: "Imagens & IA" },
+  { id: 4, title: "Cirurgia Virtual", label: "Imagens & IA" },
   { id: 5, title: "Plano Cirúrgico", label: "Movimentos" },
   { id: 6, title: "Registo Intra-op", label: "Tempos & Materiais" },
   { id: 7, title: "Descritivo", label: "Relatório Final" },
@@ -79,7 +80,17 @@ export function ProtocolForm() {
   });
   
   const initializedForId = useRef<number | null>(null);
-  
+
+  // Referência sempre com o formData mais recente, para que qualquer gravação
+  // (autosave ou manual) leia o snapshot no MOMENTO em que sai da fila — e não
+  // uma closure antiga que sobreponha dados mais recentes.
+  const formDataRef = useRef(formData);
+
+  // Fila de gravações "latest-wins": todas as escritas (autosave e manual) são
+  // encadeadas nesta promise para nunca correrem em paralelo nem chegarem fora
+  // de ordem ao servidor.
+  const saveChainRef = useRef<Promise<unknown>>(Promise.resolve());
+
   // Data Fetching
   const { data: protocol, isLoading } = useGetProtocol(protocolId as number, {
     query: { enabled: !isNew && !!protocolId, queryKey: ['getProtocol', protocolId] }
@@ -124,6 +135,8 @@ export function ProtocolForm() {
         homeMedication: protocol.homeMedication || "",
         postopRecommendations: protocol.postopRecommendations || "",
         labPrediction: protocol.labPrediction || {},
+        insuranceEntity: protocol.insuranceEntity || undefined,
+        beneficiaryNumber: protocol.beneficiaryNumber || undefined,
       });
     }
   }, [protocol]);
@@ -150,10 +163,52 @@ export function ProtocolForm() {
     return `${hours} horas`;
   };
 
+  // Mantém a referência do formData sincronizada a cada render, para as
+  // gravações encadeadas lerem sempre o snapshot mais recente.
+  useEffect(() => {
+    formDataRef.current = formData;
+  }, [formData]);
+
   // Update Form Data Helper
   const updateForm = useCallback((key: keyof ProtocolInput, value: any) => {
     setFormData(prev => ({ ...prev, [key]: value }));
   }, []);
+
+  // Encadeia uma gravação (update) de um protocolo existente na fila serializada.
+  // O `build` corre apenas quando a gravação sai da fila, lendo o formData mais
+  // recente via ref — garantindo ordem correta e "latest-wins".
+  const enqueueUpdate = (
+    build: (formData: Partial<ProtocolInput>) => ProtocolUpdate | null,
+  ): Promise<void> => {
+    const run = saveChainRef.current
+      .catch(() => {})
+      .then(async () => {
+        if (!protocolId) return;
+        const data = build(formDataRef.current);
+        if (!data) return;
+        await updateMutation.mutateAsync({ id: protocolId, data });
+      });
+    saveChainRef.current = run;
+    return run;
+  };
+
+  // Gravação silenciosa (autosave) ao mudar de passo num protocolo já existente.
+  // Não mostra toast, não bloqueia a navegação e falha em silêncio (console.error).
+  // Fica serializada na mesma fila da gravação manual (nunca corre em paralelo).
+  const autosave = () => {
+    if (isNew || !protocolId || isFinalized) return;
+    enqueueUpdate((fd) => {
+      if (!fd.processNumber || !fd.patientName) return null;
+      return { ...fd, status: fd.status || ProtocolStatus.draft } as ProtocolUpdate;
+    })
+      .then(() => {
+        if (protocolId) queryClient.invalidateQueries({ queryKey: getGetProtocolQueryKey(protocolId) });
+      })
+      .catch((e) => {
+        // Falha silenciosa — não interrompe a navegação nem mostra toast.
+        console.error("Autosave falhou", e);
+      });
+  };
 
   // Navegar entre etapas — grava automaticamente o rascunho quando a etapa
   // de destino exige protocolo existente (upload de imagens precisa de id).
@@ -167,36 +222,42 @@ export function ProtocolForm() {
       await handleSave(false, target);
       return;
     }
+    // Autosave silencioso ao sair da etapa atual num protocolo existente.
+    autosave();
     setCurrentStep(target);
   };
 
   // Save Function
   const handleSave = async (finalize = false, nextStep?: number) => {
     try {
-      const dataToSave = {
-        ...formData,
-        status: finalize ? ProtocolStatus.finalized : formData.status || ProtocolStatus.draft,
-      } as ProtocolInput;
-
-      if (!dataToSave.processNumber || !dataToSave.patientName) {
+      // Validação com o snapshot mais recente.
+      const current = formDataRef.current;
+      if (!current.processNumber || !current.patientName) {
         toast.error("Processo e Nome do Paciente são obrigatórios");
         setCurrentStep(1);
         return;
       }
 
       if (isNew) {
+        const dataToSave = {
+          ...current,
+          status: finalize ? ProtocolStatus.finalized : current.status || ProtocolStatus.draft,
+        } as ProtocolInput;
         const result = await createMutation.mutateAsync({ data: dataToSave });
         toast.success(nextStep ? "Rascunho guardado automaticamente" : "Protocolo criado com sucesso");
         setLocation(`/protocols/${result.id}${nextStep ? `?step=${nextStep}` : ""}`);
       } else {
-        await updateMutation.mutateAsync({ 
-          id: protocolId!, 
-          data: dataToSave as ProtocolUpdate 
-        });
+        // Gravação manual serializada na mesma fila do autosave — lê o formData
+        // no momento em que sai da fila (latest-wins) e nunca corre em paralelo.
+        const targetStatus = finalize ? ProtocolStatus.finalized : undefined;
+        await enqueueUpdate((fd) => ({
+          ...fd,
+          status: targetStatus || fd.status || ProtocolStatus.draft,
+        } as ProtocolUpdate));
         toast.success(finalize ? "Protocolo finalizado" : "Protocolo salvo com sucesso");
         queryClient.invalidateQueries({ queryKey: getGetProtocolQueryKey(protocolId!) });
         queryClient.invalidateQueries({ queryKey: getListProtocolsQueryKey() });
-        setFormData(prev => ({ ...prev, status: dataToSave.status }));
+        setFormData(prev => ({ ...prev, status: targetStatus || prev.status || ProtocolStatus.draft }));
       }
     } catch (e) {
       if (isFinalizedLockError(e)) {
@@ -394,6 +455,28 @@ export function ProtocolForm() {
                   <CardTitle className="uppercase tracking-widest text-sm text-primary">Identificação do Doente</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="insuranceEntity" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Entidade (seguro, ADSE, …)</Label>
+                      <Input
+                        id="insuranceEntity"
+                        value={formData.insuranceEntity || ""}
+                        onChange={(e) => updateForm("insuranceEntity", e.target.value)}
+                        disabled={isFinalized}
+                        placeholder="Ex: ADSE, Médis, Multicare…"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="beneficiaryNumber" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Nº de Beneficiário / Apólice</Label>
+                      <Input
+                        id="beneficiaryNumber"
+                        value={formData.beneficiaryNumber || ""}
+                        onChange={(e) => updateForm("beneficiaryNumber", e.target.value)}
+                        disabled={isFinalized}
+                        className="font-mono"
+                      />
+                    </div>
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="processNumber" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Nº Processo <span className="text-destructive">*</span></Label>
@@ -665,6 +748,7 @@ export function ProtocolForm() {
           {/* STEP 5: Surgical Plan */}
           {currentStep === 5 && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 space-y-6">
+              <PlanReferenceImages protocolId={protocolId} />
               <AiProposalsReview
                 protocolId={protocolId}
                 plan={formData.surgicalPlan || {}}
@@ -764,7 +848,7 @@ export function ProtocolForm() {
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
               <Card className="shadow-xs border-border/50">
                 <CardHeader>
-                  <CardTitle className="uppercase tracking-widest text-sm text-primary">Planeamento Virtual 3D — Imagens &amp; Análise IA</CardTitle>
+                  <CardTitle className="uppercase tracking-widest text-sm text-primary">Cirurgia Virtual — Imagens &amp; Análise IA</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <PlanningSection protocolId={protocolId} isFinalized={isFinalized} />
@@ -777,7 +861,7 @@ export function ProtocolForm() {
           <div className="flex justify-between mt-8 pt-6 border-t border-border/50">
             <Button 
               variant="outline" 
-              onClick={() => setCurrentStep(prev => Math.max(1, prev - 1))}
+              onClick={() => goToStep(Math.max(1, currentStep - 1))}
               disabled={currentStep === 1}
               className="uppercase tracking-widest"
             >

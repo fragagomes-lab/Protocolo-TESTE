@@ -34,11 +34,13 @@ import {
   Loader2,
   FileText,
 } from "lucide-react";
-import { IMAGE_UPLOAD_ACCEPT, resolveContentType, isPdfName } from "@/lib/upload-utils";
+import { IMAGE_UPLOAD_ACCEPT, prepareUploadFile, isPdfName } from "@/lib/upload-utils";
 import { AiPlanningPanel } from "./plan-ai-panel";
 
+// Categorias técnicas do passo "Cirurgia Virtual" — sem categorias de fotos
+// clínicas (essas vivem no passo "Fotografia Clínica").
 const CATEGORY_LABELS: Record<string, string> = {
-  fotografias_clinicas: "Fotografias Clínicas",
+  cirurgia_virtual: "Cirurgia Virtual",
   cefalometria: "Cefalometria / Radiologia",
   renders_3d: "Renders 3D",
   tecidos_moles: "Simulação Tecidos Moles",
@@ -48,6 +50,14 @@ const CATEGORY_LABELS: Record<string, string> = {
   comparacao_pre_pos: "Comparação Pré/Pós",
   outros: "Outros",
 };
+
+// Categorias de fotografias clínicas — excluídas do passo "Cirurgia Virtual".
+const CLINICAL_CATEGORIES = [
+  "foto_extraoral",
+  "foto_intraoral",
+  "foto_clinica_outra",
+  "fotografias_clinicas",
+];
 
 interface PlanningSectionProps {
   protocolId: number | null;
@@ -65,11 +75,16 @@ export function PlanningSection({ protocolId, isFinalized = false }: PlanningSec
   const [editCategory, setEditCategory] = useState<string>("");
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
-  const { data: images = [], isLoading } = useListPlanningImages(
+  const { data: allImages = [], isLoading } = useListPlanningImages(
     protocolId as number,
     {},
     { query: { enabled: !!protocolId, queryKey: getListPlanningImagesQueryKey(protocolId as number) } }
   );
+
+  // O passo "Cirurgia Virtual" nunca deve mostrar (nem enviar para a extração de
+  // medidas por IA) fotografias clínicas — essas vivem no passo "Fotografia
+  // Clínica". Filtramos essas categorias em toda a UI deste passo.
+  const images = allImages.filter(img => !CLINICAL_CATEGORIES.includes(img.category));
 
   const { mutateAsync: requestUploadMutateAsync } = useRequestUploadUrl();
   const { mutateAsync: createImageMutateAsync } = useCreatePlanningImage();
@@ -90,16 +105,16 @@ export function PlanningSection({ protocolId, isFinalized = false }: PlanningSec
 
     for (const file of files) {
       const key = `${file.name}-${Date.now()}`;
-      const contentType = resolveContentType(file);
       setUploadingFiles(prev => new Set(prev).add(key));
       try {
+        const prepared = await prepareUploadFile(file);
         const { uploadURL, objectPath } = await requestUploadMutateAsync({
-          data: { name: file.name, size: file.size, contentType },
+          data: { name: prepared.name, size: prepared.size, contentType: prepared.contentType },
         });
         await fetch(uploadURL, {
           method: "PUT",
-          body: file,
-          headers: { "Content-Type": contentType },
+          body: prepared.body,
+          headers: { "Content-Type": prepared.contentType },
         });
         const servingUrl = "/api/storage" + objectPath;
         await createImageMutateAsync({
@@ -107,13 +122,13 @@ export function PlanningSection({ protocolId, isFinalized = false }: PlanningSec
           data: {
             objectPath,
             servingUrl,
-            originalName: file.name,
-            category: PlanningImageCategory.outros as any,
+            originalName: prepared.name,
+            category: PlanningImageCategory.cirurgia_virtual as any,
             includeInPdf: true,
           },
         });
         invalidate();
-        toast.success(`${file.name} carregado com sucesso.`);
+        toast.success(`${prepared.name} carregado com sucesso.`);
       } catch {
         toast.error(`Erro ao carregar ${file.name}.`);
       } finally {
@@ -241,6 +256,11 @@ export function PlanningSection({ protocolId, isFinalized = false }: PlanningSec
 
   return (
     <div className="space-y-6">
+      <p className="text-xs text-muted-foreground leading-relaxed">
+        Imagens/printscreens do planeamento virtual (Dolphin ou equivalente) — a extração de
+        medidas por IA usa exclusivamente estas imagens.
+      </p>
+
       {/* Painel IA — 2 fases + diagnóstico sugerido */}
       <AiPlanningPanel
         protocolId={protocolId}

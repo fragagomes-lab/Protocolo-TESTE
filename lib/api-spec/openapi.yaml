@@ -595,6 +595,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/DiagnosisAiSuggestion"
 
+  /protocols/{id}/translate-document:
+    post:
+      operationId: translateDocument
+      tags: [planning]
+      summary: "Traduzir blocos de texto de um documento gerado (EN/ES) via IA — não altera dados clínicos"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TranslateDocumentBody"
+      responses:
+        "200":
+          description: Translated texts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TranslateDocumentResult"
+
   /protocols/{id}/planning-images/reorder:
     post:
       operationId: reorderPlanningImages
@@ -1324,6 +1349,13 @@ components:
         hospital: { type: ["string", "null"] }
         utenteNumber: { type: ["string", "null"] }
         citizenCardNumber: { type: ["string", "null"] }
+        insuranceEntity: { type: ["string", "null"] }
+        beneficiaryNumber: { type: ["string", "null"] }
+        signatureRepresentative: { type: ["string", "null"] }
+        signatureImagePath: { type: ["string", "null"] }
+        documentEdits:
+          type: object
+          additionalProperties: true
         expectedStay: { type: ["string", "null"] }
         admissionDateTime: { type: ["string", "null"] }
         dischargeDateTime: { type: ["string", "null"] }
@@ -1393,6 +1425,13 @@ components:
         hospital: { type: string }
         utenteNumber: { type: string }
         citizenCardNumber: { type: string }
+        insuranceEntity: { type: string }
+        beneficiaryNumber: { type: string }
+        signatureRepresentative: { type: string }
+        signatureImagePath: { type: string }
+        documentEdits:
+          type: object
+          additionalProperties: true
         expectedStay: { type: string }
         admissionDateTime: { type: string }
         dischargeDateTime: { type: string }
@@ -1446,6 +1485,13 @@ components:
         hospital: { type: string }
         utenteNumber: { type: string }
         citizenCardNumber: { type: string }
+        insuranceEntity: { type: string }
+        beneficiaryNumber: { type: string }
+        signatureRepresentative: { type: string }
+        signatureImagePath: { type: string }
+        documentEdits:
+          type: object
+          additionalProperties: true
         expectedStay: { type: string }
         admissionDateTime: { type: string }
         dischargeDateTime: { type: string }
@@ -1480,10 +1526,69 @@ components:
             mentoplasty: { type: boolean }
             atmProsthesis: { type: boolean }
             other: { type: string }
+        # Complementos estruturados por osso/região (substitui a lista solta na UI;
+        # o objeto "complements" acima mantém-se para dados antigos)
+        maxillaComplement:
+          type: object
+          properties:
+            segmentationParts:
+              type: string
+              enum: ["2", "3", "4", ""]
+            segmentationType:
+              type: string
+              enum: [expansao, contracao, ""]
+            notes: { type: string }
+        mandibleComplement:
+          type: object
+          properties:
+            atmProsthesis: { type: boolean }
+            ridgePlastySide:
+              type: string
+              enum: [D, E, bilateral, ""]
+            ridgePlastyDescription: { type: string }
+            notes: { type: string }
+        chinComplement:
+          type: object
+          properties:
+            mentoplasty: { type: boolean }
+            notes: { type: string }
+        nasalComplement:
+          type: object
+          properties:
+            septumDeviationSide:
+              type: string
+              enum: [D, E, ""]
+            vomerianSpurSide:
+              type: string
+              enum: [D, E, ""]
+            turbinates: { type: boolean }
+            notes: { type: string }
+        alloplasticImplants:
+          type: array
+          items:
+            $ref: "#/components/schemas/AlloplasticImplant"
+        otherProcedures: { type: string }
         checks:
           type: array
           items:
             $ref: "#/components/schemas/LabPredictionCheck"
+
+    AlloplasticImplant:
+      type: object
+      properties:
+        region:
+          type: string
+          enum: [malar, mandibular, mento, outra, ""]
+        side:
+          type: string
+          enum: [D, E, bilateral, ""]
+        material:
+          type: string
+          enum: [titanio, outro, ""]
+        customMade: { type: boolean }
+        brandReference: { type: string }
+        lot: { type: string }
+        notes: { type: string }
 
     LabPredictionCheck:
       type: object
@@ -1665,7 +1770,7 @@ components:
         caption: { type: ["string", "null"] }
         category:
           type: string
-          enum: [foto_extraoral, foto_intraoral, foto_clinica_outra, fotografias_clinicas, cefalometria, renders_3d, tecidos_moles, osteotomias, movimentos_osseos, splints_guias, comparacao_pre_pos, outros]
+          enum: [foto_extraoral, foto_intraoral, foto_clinica_outra, fotografias_clinicas, cirurgia_virtual, cefalometria, renders_3d, tecidos_moles, osteotomias, movimentos_osseos, splints_guias, comparacao_pre_pos, outros]
         phase: { type: ["string", "null"] }
         captureDate: { type: ["string", "null"] }
         isHeaderPhoto: { type: boolean }
@@ -1689,7 +1794,7 @@ components:
         caption: { type: string }
         category:
           type: string
-          enum: [foto_extraoral, foto_intraoral, foto_clinica_outra, fotografias_clinicas, cefalometria, renders_3d, tecidos_moles, osteotomias, movimentos_osseos, splints_guias, comparacao_pre_pos, outros]
+          enum: [foto_extraoral, foto_intraoral, foto_clinica_outra, fotografias_clinicas, cirurgia_virtual, cefalometria, renders_3d, tecidos_moles, osteotomias, movimentos_osseos, splints_guias, comparacao_pre_pos, outros]
         phase: { type: string }
         captureDate: { type: string }
         isHeaderPhoto: { type: boolean }
@@ -1702,7 +1807,7 @@ components:
         caption: { type: string }
         category:
           type: string
-          enum: [foto_extraoral, foto_intraoral, foto_clinica_outra, fotografias_clinicas, cefalometria, renders_3d, tecidos_moles, osteotomias, movimentos_osseos, splints_guias, comparacao_pre_pos, outros]
+          enum: [foto_extraoral, foto_intraoral, foto_clinica_outra, fotografias_clinicas, cirurgia_virtual, cefalometria, renders_3d, tecidos_moles, osteotomias, movimentos_osseos, splints_guias, comparacao_pre_pos, outros]
         phase: { type: string }
         captureDate: { type: string }
         isHeaderPhoto: { type: boolean }
@@ -1714,6 +1819,36 @@ components:
     PlanAiAnalysis:
       type: object
       additionalProperties: true
+
+    TranslateDocumentBody:
+      type: object
+      required: [language, texts]
+      properties:
+        language:
+          type: string
+          enum: [en, es]
+        texts:
+          type: array
+          items:
+            type: object
+            required: [key, text]
+            properties:
+              key: { type: string }
+              text: { type: string }
+
+    TranslateDocumentResult:
+      type: object
+      required: [language, translations]
+      properties:
+        language: { type: string }
+        translations:
+          type: array
+          items:
+            type: object
+            required: [key, text]
+            properties:
+              key: { type: string }
+              text: { type: string }
 
     DiagnosisAiSuggestBody:
       type: object

@@ -277,6 +277,11 @@ export const CreateProtocolBody = zod.object({
   "hospital": zod.string().optional(),
   "utenteNumber": zod.string().optional(),
   "citizenCardNumber": zod.string().optional(),
+  "insuranceEntity": zod.string().optional(),
+  "beneficiaryNumber": zod.string().optional(),
+  "signatureRepresentative": zod.string().optional(),
+  "signatureImagePath": zod.string().optional(),
+  "documentEdits": zod.record(zod.string(), zod.unknown()).optional(),
   "expectedStay": zod.string().optional(),
   "admissionDateTime": zod.string().optional(),
   "dischargeDateTime": zod.string().optional(),
@@ -296,6 +301,37 @@ export const CreateProtocolBody = zod.object({
   "atmProsthesis": zod.boolean().optional(),
   "other": zod.string().optional()
 }).optional(),
+  "maxillaComplement": zod.object({
+  "segmentationParts": zod.enum(['2', '3', '4', '']).optional(),
+  "segmentationType": zod.enum(['expansao', 'contracao', '']).optional(),
+  "notes": zod.string().optional()
+}).optional(),
+  "mandibleComplement": zod.object({
+  "atmProsthesis": zod.boolean().optional(),
+  "ridgePlastySide": zod.enum(['D', 'E', 'bilateral', '']).optional(),
+  "ridgePlastyDescription": zod.string().optional(),
+  "notes": zod.string().optional()
+}).optional(),
+  "chinComplement": zod.object({
+  "mentoplasty": zod.boolean().optional(),
+  "notes": zod.string().optional()
+}).optional(),
+  "nasalComplement": zod.object({
+  "septumDeviationSide": zod.enum(['D', 'E', '']).optional(),
+  "vomerianSpurSide": zod.enum(['D', 'E', '']).optional(),
+  "turbinates": zod.boolean().optional(),
+  "notes": zod.string().optional()
+}).optional(),
+  "alloplasticImplants": zod.array(zod.object({
+  "region": zod.enum(['malar', 'mandibular', 'mento', 'outra', '']).optional(),
+  "side": zod.enum(['D', 'E', 'bilateral', '']).optional(),
+  "material": zod.enum(['titanio', 'outro', '']).optional(),
+  "customMade": zod.boolean().optional(),
+  "brandReference": zod.string().optional(),
+  "lot": zod.string().optional(),
+  "notes": zod.string().optional()
+})).optional(),
+  "otherProcedures": zod.string().optional(),
   "checks": zod.array(zod.object({
   "id": zod.string(),
   "option": zod.string().optional(),
@@ -543,6 +579,11 @@ export const CreateProtocolResponse = zod.object({
   "hospital": zod.string().nullish(),
   "utenteNumber": zod.string().nullish(),
   "citizenCardNumber": zod.string().nullish(),
+  "insuranceEntity": zod.string().nullish(),
+  "beneficiaryNumber": zod.string().nullish(),
+  "signatureRepresentative": zod.string().nullish(),
+  "signatureImagePath": zod.string().nullish(),
+  "documentEdits": zod.record(zod.string(), zod.unknown()).optional(),
   "expectedStay": zod.string().nullish(),
   "admissionDateTime": zod.string().nullish(),
   "dischargeDateTime": zod.string().nullish(),
@@ -562,6 +603,37 @@ export const CreateProtocolResponse = zod.object({
   "atmProsthesis": zod.boolean().optional(),
   "other": zod.string().optional()
 }).optional(),
+  "maxillaComplement": zod.object({
+  "segmentationParts": zod.enum(['2', '3', '4', '']).optional(),
+  "segmentationType": zod.enum(['expansao', 'contracao', '']).optional(),
+  "notes": zod.string().optional()
+}).optional(),
+  "mandibleComplement": zod.object({
+  "atmProsthesis": zod.boolean().optional(),
+  "ridgePlastySide": zod.enum(['D', 'E', 'bilateral', '']).optional(),
+  "ridgePlastyDescription": zod.string().optional(),
+  "notes": zod.string().optional()
+}).optional(),
+  "chinComplement": zod.object({
+  "mentoplasty": zod.boolean().optional(),
+  "notes": zod.string().optional()
+}).optional(),
+  "nasalComplement": zod.object({
+  "septumDeviationSide": zod.enum(['D', 'E', '']).optional(),
+  "vomerianSpurSide": zod.enum(['D', 'E', '']).optional(),
+  "turbinates": zod.boolean().optional(),
+  "notes": zod.string().optional()
+}).optional(),
+  "alloplasticImplants": zod.array(zod.object({
+  "region": zod.enum(['malar', 'mandibular', 'mento', 'outra', '']).optional(),
+  "side": zod.enum(['D', 'E', 'bilateral', '']).optional(),
+  "material": zod.enum(['titanio', 'outro', '']).optional(),
+  "customMade": zod.boolean().optional(),
+  "brandReference": zod.string().optional(),
+  "lot": zod.string().optional(),
+  "notes": zod.string().optional()
+})).optional(),
+  "otherProcedures": zod.string().optional(),
   "checks": zod.array(zod.object({
   "id": zod.string(),
   "option": zod.string().optional(),
@@ -861,6 +933,11 @@ export const GetProtocolResponse = zod.object({
   "hospital": zod.string().nullish(),
   "utenteNumber": zod.string().nullish(),
   "citizenCardNumber": zod.string().nullish(),
+  "insuranceEntity": zod.string().nullish(),
+  "beneficiaryNumber": zod.string().nullish(),
+  "signatureRepresentative": zod.string().nullish(),
+  "signatureImagePath": zod.string().nullish(),
+  "documentEdits": zod.record(zod.string(), zod.unknown()).optional(),
   "expectedStay": zod.string().nullish(),
   "admissionDateTime": zod.string().nullish(),
   "dischargeDateTime": zod.string().nullish(),
@@ -880,6 +957,37 @@ export const GetProtocolResponse = zod.object({
   "atmProsthesis": zod.boolean().optional(),
   "other": zod.string().optional()
 }).optional(),
+  "maxillaComplement": zod.object({
+  "segmentationParts": zod.enum(['2', '3', '4', '']).optional(),
+  "segmentationType": zod.enum(['expansao', 'contracao', '']).optional(),
+  "notes": zod.string().optional()
+}).optional(),
+  "mandibleComplement": zod.object({
+  "atmProsthesis": zod.boolean().optional(),
+  "ridgePlastySide": zod.enum(['D', 'E', 'bilateral', '']).optional(),
+  "ridgePlastyDescription": zod.string().optional(),
+  "notes": zod.string().optional()
+}).optional(),
+  "chinComplement": zod.object({
+  "mentoplasty": zod.boolean().optional(),
+  "notes": zod.string().optional()
+}).optional(),
+  "nasalComplement": zod.object({
+  "septumDeviationSide": zod.enum(['D', 'E', '']).optional(),
+  "vomerianSpurSide": zod.enum(['D', 'E', '']).optional(),
+  "turbinates": zod.boolean().optional(),
+  "notes": zod.string().optional()
+}).optional(),
+  "alloplasticImplants": zod.array(zod.object({
+  "region": zod.enum(['malar', 'mandibular', 'mento', 'outra', '']).optional(),
+  "side": zod.enum(['D', 'E', 'bilateral', '']).optional(),
+  "material": zod.enum(['titanio', 'outro', '']).optional(),
+  "customMade": zod.boolean().optional(),
+  "brandReference": zod.string().optional(),
+  "lot": zod.string().optional(),
+  "notes": zod.string().optional()
+})).optional(),
+  "otherProcedures": zod.string().optional(),
   "checks": zod.array(zod.object({
   "id": zod.string(),
   "option": zod.string().optional(),
@@ -1141,6 +1249,11 @@ export const UpdateProtocolBody = zod.object({
   "hospital": zod.string().optional(),
   "utenteNumber": zod.string().optional(),
   "citizenCardNumber": zod.string().optional(),
+  "insuranceEntity": zod.string().optional(),
+  "beneficiaryNumber": zod.string().optional(),
+  "signatureRepresentative": zod.string().optional(),
+  "signatureImagePath": zod.string().optional(),
+  "documentEdits": zod.record(zod.string(), zod.unknown()).optional(),
   "expectedStay": zod.string().optional(),
   "admissionDateTime": zod.string().optional(),
   "dischargeDateTime": zod.string().optional(),
@@ -1160,6 +1273,37 @@ export const UpdateProtocolBody = zod.object({
   "atmProsthesis": zod.boolean().optional(),
   "other": zod.string().optional()
 }).optional(),
+  "maxillaComplement": zod.object({
+  "segmentationParts": zod.enum(['2', '3', '4', '']).optional(),
+  "segmentationType": zod.enum(['expansao', 'contracao', '']).optional(),
+  "notes": zod.string().optional()
+}).optional(),
+  "mandibleComplement": zod.object({
+  "atmProsthesis": zod.boolean().optional(),
+  "ridgePlastySide": zod.enum(['D', 'E', 'bilateral', '']).optional(),
+  "ridgePlastyDescription": zod.string().optional(),
+  "notes": zod.string().optional()
+}).optional(),
+  "chinComplement": zod.object({
+  "mentoplasty": zod.boolean().optional(),
+  "notes": zod.string().optional()
+}).optional(),
+  "nasalComplement": zod.object({
+  "septumDeviationSide": zod.enum(['D', 'E', '']).optional(),
+  "vomerianSpurSide": zod.enum(['D', 'E', '']).optional(),
+  "turbinates": zod.boolean().optional(),
+  "notes": zod.string().optional()
+}).optional(),
+  "alloplasticImplants": zod.array(zod.object({
+  "region": zod.enum(['malar', 'mandibular', 'mento', 'outra', '']).optional(),
+  "side": zod.enum(['D', 'E', 'bilateral', '']).optional(),
+  "material": zod.enum(['titanio', 'outro', '']).optional(),
+  "customMade": zod.boolean().optional(),
+  "brandReference": zod.string().optional(),
+  "lot": zod.string().optional(),
+  "notes": zod.string().optional()
+})).optional(),
+  "otherProcedures": zod.string().optional(),
   "checks": zod.array(zod.object({
   "id": zod.string(),
   "option": zod.string().optional(),
@@ -1408,6 +1552,11 @@ export const UpdateProtocolResponse = zod.object({
   "hospital": zod.string().nullish(),
   "utenteNumber": zod.string().nullish(),
   "citizenCardNumber": zod.string().nullish(),
+  "insuranceEntity": zod.string().nullish(),
+  "beneficiaryNumber": zod.string().nullish(),
+  "signatureRepresentative": zod.string().nullish(),
+  "signatureImagePath": zod.string().nullish(),
+  "documentEdits": zod.record(zod.string(), zod.unknown()).optional(),
   "expectedStay": zod.string().nullish(),
   "admissionDateTime": zod.string().nullish(),
   "dischargeDateTime": zod.string().nullish(),
@@ -1427,6 +1576,37 @@ export const UpdateProtocolResponse = zod.object({
   "atmProsthesis": zod.boolean().optional(),
   "other": zod.string().optional()
 }).optional(),
+  "maxillaComplement": zod.object({
+  "segmentationParts": zod.enum(['2', '3', '4', '']).optional(),
+  "segmentationType": zod.enum(['expansao', 'contracao', '']).optional(),
+  "notes": zod.string().optional()
+}).optional(),
+  "mandibleComplement": zod.object({
+  "atmProsthesis": zod.boolean().optional(),
+  "ridgePlastySide": zod.enum(['D', 'E', 'bilateral', '']).optional(),
+  "ridgePlastyDescription": zod.string().optional(),
+  "notes": zod.string().optional()
+}).optional(),
+  "chinComplement": zod.object({
+  "mentoplasty": zod.boolean().optional(),
+  "notes": zod.string().optional()
+}).optional(),
+  "nasalComplement": zod.object({
+  "septumDeviationSide": zod.enum(['D', 'E', '']).optional(),
+  "vomerianSpurSide": zod.enum(['D', 'E', '']).optional(),
+  "turbinates": zod.boolean().optional(),
+  "notes": zod.string().optional()
+}).optional(),
+  "alloplasticImplants": zod.array(zod.object({
+  "region": zod.enum(['malar', 'mandibular', 'mento', 'outra', '']).optional(),
+  "side": zod.enum(['D', 'E', 'bilateral', '']).optional(),
+  "material": zod.enum(['titanio', 'outro', '']).optional(),
+  "customMade": zod.boolean().optional(),
+  "brandReference": zod.string().optional(),
+  "lot": zod.string().optional(),
+  "notes": zod.string().optional()
+})).optional(),
+  "otherProcedures": zod.string().optional(),
   "checks": zod.array(zod.object({
   "id": zod.string(),
   "option": zod.string().optional(),
@@ -1699,6 +1879,11 @@ export const DuplicateProtocolResponse = zod.object({
   "hospital": zod.string().nullish(),
   "utenteNumber": zod.string().nullish(),
   "citizenCardNumber": zod.string().nullish(),
+  "insuranceEntity": zod.string().nullish(),
+  "beneficiaryNumber": zod.string().nullish(),
+  "signatureRepresentative": zod.string().nullish(),
+  "signatureImagePath": zod.string().nullish(),
+  "documentEdits": zod.record(zod.string(), zod.unknown()).optional(),
   "expectedStay": zod.string().nullish(),
   "admissionDateTime": zod.string().nullish(),
   "dischargeDateTime": zod.string().nullish(),
@@ -1718,6 +1903,37 @@ export const DuplicateProtocolResponse = zod.object({
   "atmProsthesis": zod.boolean().optional(),
   "other": zod.string().optional()
 }).optional(),
+  "maxillaComplement": zod.object({
+  "segmentationParts": zod.enum(['2', '3', '4', '']).optional(),
+  "segmentationType": zod.enum(['expansao', 'contracao', '']).optional(),
+  "notes": zod.string().optional()
+}).optional(),
+  "mandibleComplement": zod.object({
+  "atmProsthesis": zod.boolean().optional(),
+  "ridgePlastySide": zod.enum(['D', 'E', 'bilateral', '']).optional(),
+  "ridgePlastyDescription": zod.string().optional(),
+  "notes": zod.string().optional()
+}).optional(),
+  "chinComplement": zod.object({
+  "mentoplasty": zod.boolean().optional(),
+  "notes": zod.string().optional()
+}).optional(),
+  "nasalComplement": zod.object({
+  "septumDeviationSide": zod.enum(['D', 'E', '']).optional(),
+  "vomerianSpurSide": zod.enum(['D', 'E', '']).optional(),
+  "turbinates": zod.boolean().optional(),
+  "notes": zod.string().optional()
+}).optional(),
+  "alloplasticImplants": zod.array(zod.object({
+  "region": zod.enum(['malar', 'mandibular', 'mento', 'outra', '']).optional(),
+  "side": zod.enum(['D', 'E', 'bilateral', '']).optional(),
+  "material": zod.enum(['titanio', 'outro', '']).optional(),
+  "customMade": zod.boolean().optional(),
+  "brandReference": zod.string().optional(),
+  "lot": zod.string().optional(),
+  "notes": zod.string().optional()
+})).optional(),
+  "otherProcedures": zod.string().optional(),
   "checks": zod.array(zod.object({
   "id": zod.string(),
   "option": zod.string().optional(),
@@ -2398,7 +2614,7 @@ export const ListPlanningImagesResponseItem = zod.object({
   "servingUrl": zod.string(),
   "originalName": zod.string().nullish(),
   "caption": zod.string().nullish(),
-  "category": zod.enum(['foto_extraoral', 'foto_intraoral', 'foto_clinica_outra', 'fotografias_clinicas', 'cefalometria', 'renders_3d', 'tecidos_moles', 'osteotomias', 'movimentos_osseos', 'splints_guias', 'comparacao_pre_pos', 'outros']),
+  "category": zod.enum(['foto_extraoral', 'foto_intraoral', 'foto_clinica_outra', 'fotografias_clinicas', 'cirurgia_virtual', 'cefalometria', 'renders_3d', 'tecidos_moles', 'osteotomias', 'movimentos_osseos', 'splints_guias', 'comparacao_pre_pos', 'outros']),
   "phase": zod.string().nullish(),
   "captureDate": zod.string().nullish(),
   "isHeaderPhoto": zod.boolean().optional(),
@@ -2427,7 +2643,7 @@ export const CreatePlanningImageBody = zod.object({
   "servingUrl": zod.string(),
   "originalName": zod.string().optional(),
   "caption": zod.string().optional(),
-  "category": zod.enum(['foto_extraoral', 'foto_intraoral', 'foto_clinica_outra', 'fotografias_clinicas', 'cefalometria', 'renders_3d', 'tecidos_moles', 'osteotomias', 'movimentos_osseos', 'splints_guias', 'comparacao_pre_pos', 'outros']),
+  "category": zod.enum(['foto_extraoral', 'foto_intraoral', 'foto_clinica_outra', 'fotografias_clinicas', 'cirurgia_virtual', 'cefalometria', 'renders_3d', 'tecidos_moles', 'osteotomias', 'movimentos_osseos', 'splints_guias', 'comparacao_pre_pos', 'outros']),
   "phase": zod.string().optional(),
   "captureDate": zod.string().optional(),
   "isHeaderPhoto": zod.boolean().optional(),
@@ -2442,7 +2658,7 @@ export const CreatePlanningImageResponse = zod.object({
   "servingUrl": zod.string(),
   "originalName": zod.string().nullish(),
   "caption": zod.string().nullish(),
-  "category": zod.enum(['foto_extraoral', 'foto_intraoral', 'foto_clinica_outra', 'fotografias_clinicas', 'cefalometria', 'renders_3d', 'tecidos_moles', 'osteotomias', 'movimentos_osseos', 'splints_guias', 'comparacao_pre_pos', 'outros']),
+  "category": zod.enum(['foto_extraoral', 'foto_intraoral', 'foto_clinica_outra', 'fotografias_clinicas', 'cirurgia_virtual', 'cefalometria', 'renders_3d', 'tecidos_moles', 'osteotomias', 'movimentos_osseos', 'splints_guias', 'comparacao_pre_pos', 'outros']),
   "phase": zod.string().nullish(),
   "captureDate": zod.string().nullish(),
   "isHeaderPhoto": zod.boolean().optional(),
@@ -2521,6 +2737,30 @@ export const SuggestDiagnosisAiResponse = zod.object({
 
 
 /**
+ * @summary Traduzir blocos de texto de um documento gerado (EN/ES) via IA — não altera dados clínicos
+ */
+export const TranslateDocumentParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const TranslateDocumentBody = zod.object({
+  "language": zod.enum(['en', 'es']),
+  "texts": zod.array(zod.object({
+  "key": zod.string(),
+  "text": zod.string()
+}))
+})
+
+export const TranslateDocumentResponse = zod.object({
+  "language": zod.string(),
+  "translations": zod.array(zod.object({
+  "key": zod.string(),
+  "text": zod.string()
+}))
+})
+
+
+/**
  * @summary Reorder planning images
  */
 export const ReorderPlanningImagesParams = zod.object({
@@ -2538,7 +2778,7 @@ export const ReorderPlanningImagesResponseItem = zod.object({
   "servingUrl": zod.string(),
   "originalName": zod.string().nullish(),
   "caption": zod.string().nullish(),
-  "category": zod.enum(['foto_extraoral', 'foto_intraoral', 'foto_clinica_outra', 'fotografias_clinicas', 'cefalometria', 'renders_3d', 'tecidos_moles', 'osteotomias', 'movimentos_osseos', 'splints_guias', 'comparacao_pre_pos', 'outros']),
+  "category": zod.enum(['foto_extraoral', 'foto_intraoral', 'foto_clinica_outra', 'fotografias_clinicas', 'cirurgia_virtual', 'cefalometria', 'renders_3d', 'tecidos_moles', 'osteotomias', 'movimentos_osseos', 'splints_guias', 'comparacao_pre_pos', 'outros']),
   "phase": zod.string().nullish(),
   "captureDate": zod.string().nullish(),
   "isHeaderPhoto": zod.boolean().optional(),
@@ -2565,7 +2805,7 @@ export const UpdatePlanningImageParams = zod.object({
 
 export const UpdatePlanningImageBody = zod.object({
   "caption": zod.string().optional(),
-  "category": zod.enum(['foto_extraoral', 'foto_intraoral', 'foto_clinica_outra', 'fotografias_clinicas', 'cefalometria', 'renders_3d', 'tecidos_moles', 'osteotomias', 'movimentos_osseos', 'splints_guias', 'comparacao_pre_pos', 'outros']).optional(),
+  "category": zod.enum(['foto_extraoral', 'foto_intraoral', 'foto_clinica_outra', 'fotografias_clinicas', 'cirurgia_virtual', 'cefalometria', 'renders_3d', 'tecidos_moles', 'osteotomias', 'movimentos_osseos', 'splints_guias', 'comparacao_pre_pos', 'outros']).optional(),
   "phase": zod.string().optional(),
   "captureDate": zod.string().optional(),
   "isHeaderPhoto": zod.boolean().optional(),
@@ -2582,7 +2822,7 @@ export const UpdatePlanningImageResponse = zod.object({
   "servingUrl": zod.string(),
   "originalName": zod.string().nullish(),
   "caption": zod.string().nullish(),
-  "category": zod.enum(['foto_extraoral', 'foto_intraoral', 'foto_clinica_outra', 'fotografias_clinicas', 'cefalometria', 'renders_3d', 'tecidos_moles', 'osteotomias', 'movimentos_osseos', 'splints_guias', 'comparacao_pre_pos', 'outros']),
+  "category": zod.enum(['foto_extraoral', 'foto_intraoral', 'foto_clinica_outra', 'fotografias_clinicas', 'cirurgia_virtual', 'cefalometria', 'renders_3d', 'tecidos_moles', 'osteotomias', 'movimentos_osseos', 'splints_guias', 'comparacao_pre_pos', 'outros']),
   "phase": zod.string().nullish(),
   "captureDate": zod.string().nullish(),
   "isHeaderPhoto": zod.boolean().optional(),

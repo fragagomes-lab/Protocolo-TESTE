@@ -34,19 +34,30 @@ type ImgRow = typeof planningImagesTable.$inferSelect;
 const isPdf = (img: ImgRow) =>
   !!(img.originalName?.toLowerCase().endsWith(".pdf") || img.objectPath?.toLowerCase().endsWith(".pdf"));
 
+// Reduz o peso/resolução das imagens antes de enviar ao modelo (menos risco
+// de payloads gigantes/truncagem). Se a compressão falhar, usa o original.
 async function loadImageBuffer(objectPath: string): Promise<{ b64: string; mime: string; hash: string } | null> {
   try {
     const file = await storage.getObjectEntityFile(objectPath);
     const [buf] = await file.download();
     const [meta] = await file.getMetadata();
     const mime = (meta.contentType as string) || "image/jpeg";
-    return {
-      b64: buf.toString("base64"),
-      mime: mime.startsWith("image/") ? mime : "image/jpeg",
-      hash: createHash("sha256").update(buf).digest("hex"),
-    };
+    const hash = createHash("sha256").update(buf).digest("hex");
+    try {
+      const sharp = (await import("sharp")).default;
+      const out = await sharp(buf).rotate().resize({ width: 1280, height: 1280, fit: "inside", withoutEnlargement: true }).jpeg({ quality: 82 }).toBuffer();
+      return { b64: out.toString("base64"), mime: "image/jpeg", hash };
+    } catch {
+      return { b64: buf.toString("base64"), mime: mime.startsWith("image/") ? mime : "image/jpeg", hash };
+    }
   } catch {
     return null;
+  }
+}
+
+class AiRouteError extends Error {
+  constructor(public code: "ai_provider_error" | "ai_no_json" | "ai_truncated", message: string) {
+    super(message);
   }
 }
 
@@ -56,6 +67,50 @@ function extractJson(text: string): unknown {
   const end = cleaned.lastIndexOf("}");
   if (start === -1 || end === -1) throw new Error("Resposta da IA sem JSON");
   return JSON.parse(cleaned.slice(start, end + 1));
+}
+
+// Chamada ao modelo com saída JSON estruturada, deteção de truncagem e
+// registo completo de erros do fornecedor / respostas inválidas.
+async function callAiJson(
+  openai: OpenAI,
+  model: string,
+  content: OpenAI.Chat.Completions.ChatCompletionContentPart[],
+  logCtx: Record<string, unknown>,
+): Promise<unknown> {
+  let resp: OpenAI.Chat.Completions.ChatCompletion;
+  try {
+    resp = await openai.chat.completions.create({
+      model,
+      max_completion_tokens: 16384,
+      response_format: { type: "json_object" },
+      messages: [{ role: "user", content }],
+    });
+  } catch (err) {
+    const e = err as { status?: number; code?: string; message?: string; error?: unknown };
+    console.error("[plan-ai] erro do fornecedor de IA", { ...logCtx, status: e.status, code: e.code, message: e.message, body: e.error });
+    throw new AiRouteError("ai_provider_error", `O serviço de IA devolveu um erro (${e.status ?? "sem código"}): ${e.message ?? "desconhecido"}.`);
+  }
+  const choice = resp.choices[0];
+  const raw = choice?.message?.content ?? "";
+  if (choice?.finish_reason === "length") {
+    console.error("[plan-ai] resposta truncada pelo limite de tokens", { ...logCtx, rawLength: raw.length });
+    throw new AiRouteError("ai_truncated", "A resposta da IA foi cortada por ser demasiado longa. Tente com menos imagens.");
+  }
+  try {
+    return extractJson(raw);
+  } catch {
+    console.error("[plan-ai] resposta da IA sem JSON válido", { ...logCtx, raw });
+    throw new AiRouteError("ai_no_json", "A IA respondeu num formato inesperado (sem JSON válido). Tente novamente.");
+  }
+}
+
+function handleAiError(res: { status: (n: number) => { json: (o: unknown) => void } }, err: unknown) {
+  if (err instanceof AiRouteError) {
+    res.status(502).json({ error: err.code, message: err.message });
+    return;
+  }
+  console.error("[plan-ai] erro inesperado", err);
+  res.status(502).json({ error: "ai_error", message: `Erro na análise de IA: ${err instanceof Error ? err.message : "desconhecido"}` });
 }
 
 async function getProtocol(id: number) {
@@ -96,13 +151,15 @@ router.post("/protocols/:id/plan-ai/classify", async (req, res): Promise<void> =
   const openai = getAiClient();
   if (!openai) { aiNotConfigured(res); return; }
 
+  // Só imagens da cirurgia virtual/planeamento — as fotografias clínicas
+  // iniciais NUNCA alimentam a extração de medidas (pedido do cirurgião).
   const all = await db
     .select()
     .from(planningImagesTable)
     .where(eq(planningImagesTable.protocolId, id));
-  const candidates = all.filter((i) => !isPdf(i));
+  const candidates = all.filter((i) => !isPdf(i) && !CLINICAL_PHOTO_CATEGORIES.includes(i.category));
   if (candidates.length === 0) {
-    res.status(400).json({ error: "no_images", message: "Sem imagens para analisar." });
+    res.status(400).json({ error: "no_images", message: "Sem imagens de cirurgia virtual para analisar. Carregue-as no passo Cirurgia Virtual." });
     return;
   }
 
@@ -146,12 +203,11 @@ router.post("/protocols/:id/plan-ai/classify", async (req, res): Promise<void> =
           image_url: { url: `data:${b.mime};base64,${b.b64}` },
         })),
       ];
-      const resp = await openai.chat.completions.create({
-        model: CLASSIFY_MODEL,
-        max_completion_tokens: 8192,
-        messages: [{ role: "user", content }],
-      });
-      const parsed = extractJson(resp.choices[0]?.message?.content ?? "") as {
+      const parsed = (await callAiJson(openai, CLASSIFY_MODEL, content, {
+        route: "plan-ai/classify",
+        protocolId: id,
+        images: batch.length,
+      })) as {
         results?: Array<{ imageId: number; classification: string; reason?: string }>;
       };
       for (const r of parsed.results ?? []) {
@@ -197,7 +253,7 @@ router.post("/protocols/:id/plan-ai/classify", async (req, res): Promise<void> =
     await saveAnalysis(id, analysis);
     res.json(analysis);
   } catch (err) {
-    res.status(502).json({ error: "ai_error", message: `Erro na análise de IA: ${err instanceof Error ? err.message : "desconhecido"}` });
+    handleAiError(res, err);
   }
 });
 
@@ -235,7 +291,10 @@ router.post("/protocols/:id/plan-ai/extract", async (req, res): Promise<void> =>
     return;
   }
   // A seleção gravada pelo cirurgião é a autoridade — não o pedido do cliente.
-  const confirmed = rows.filter((r) => r.isFinalMeasurement === true && r.selectedForExtraction === true && !isPdf(r));
+  // Fotografias clínicas NUNCA alimentam a extração de medidas, mesmo que marcadas.
+  const confirmed = rows.filter(
+    (r) => r.isFinalMeasurement === true && r.selectedForExtraction === true && !isPdf(r) && !CLINICAL_PHOTO_CATEGORIES.includes(r.category),
+  );
   if (confirmed.length === 0) {
     res.status(400).json({ error: "none_confirmed", message: "Nenhuma das imagens selecionadas está confirmada como medidas finais e marcada para pré-preenchimento." });
     return;
@@ -300,13 +359,11 @@ router.post("/protocols/:id/plan-ai/extract", async (req, res): Promise<void> =>
       })),
     ];
 
-    const resp = await openai.chat.completions.create({
-      model: EXTRACT_MODEL,
-      max_completion_tokens: 8192,
-      messages: [{ role: "user", content }],
-    });
-    const raw = resp.choices[0]?.message?.content ?? "";
-    const parsed = extractJson(raw) as {
+    const parsed = (await callAiJson(openai, EXTRACT_MODEL, content, {
+      route: "plan-ai/extract",
+      protocolId: id,
+      images: loaded.length,
+    })) as {
       proposals?: Array<Record<string, unknown>>;
       diagnosis?: { hypotheses?: Array<Record<string, unknown>>; uncertain?: boolean; comment?: string };
     };
@@ -347,7 +404,7 @@ router.post("/protocols/:id/plan-ai/extract", async (req, res): Promise<void> =>
     await saveAnalysis(id, analysis);
     res.json(analysis);
   } catch (err) {
-    res.status(502).json({ error: "ai_error", message: `Erro na extração por IA: ${err instanceof Error ? err.message : "desconhecido"}` });
+    handleAiError(res, err);
   }
 });
 
@@ -459,7 +516,7 @@ router.post("/protocols/:id/diagnosis-ai/suggest", async (req, res): Promise<voi
 
   try {
     const loaded: Array<{ b64: string; mime: string }> = [];
-    for (const img of photos.slice(0, 12)) {
+    for (const img of photos.slice(0, 8)) {
       const data = await loadImageBuffer(img.objectPath);
       if (data) loaded.push({ b64: data.b64, mime: data.mime });
     }
@@ -486,13 +543,12 @@ router.post("/protocols/:id/diagnosis-ai/suggest", async (req, res): Promise<voi
       })),
     ];
 
-    const resp = await openai.chat.completions.create({
-      model: EXTRACT_MODEL,
-      max_completion_tokens: 8192,
-      messages: [{ role: "user", content }],
-    });
-    const raw = resp.choices[0]?.message?.content ?? "";
-    const parsed = extractJson(raw) as { introPhraseId?: number | null; phraseIds?: number[]; notes?: string };
+    const parsed = (await callAiJson(openai, EXTRACT_MODEL, content, {
+      route: "diagnosis-ai/suggest",
+      protocolId: id,
+      images: loaded.length,
+    })) as { introPhraseId?: number | null; phraseIds?: number[]; notes?: string };
+    const raw = JSON.stringify(parsed);
 
     // Validar: só ids existentes; intro só de "Introdução"; corpo nunca de Introdução/Fecho
     const validIds = new Set(phrases.map((p) => p.id));
@@ -508,7 +564,7 @@ router.post("/protocols/:id/diagnosis-ai/suggest", async (req, res): Promise<voi
     const suggestion = {
       at: new Date().toISOString(),
       model: EXTRACT_MODEL,
-      imageIds: photos.slice(0, 12).map((p) => p.id),
+      imageIds: photos.slice(0, 8).map((p) => p.id),
       introPhraseId,
       phraseIds,
       closingPhraseIds: [] as number[],
@@ -539,7 +595,73 @@ router.post("/protocols/:id/diagnosis-ai/suggest", async (req, res): Promise<voi
     });
     res.json(suggestion);
   } catch (err) {
-    res.status(502).json({ error: "ai_error", message: `Erro na análise de IA: ${err instanceof Error ? err.message : "desconhecido"}` });
+    handleAiError(res, err);
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
+// Tradução de documentos gerados (EN/ES) — não altera dados clínicos,
+// por isso funciona também em protocolos finalizados.
+// ─────────────────────────────────────────────────────────────
+router.post("/protocols/:id/translate-document", async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) { res.status(400).json({ error: "invalid id" }); return; }
+  const protocol = await getProtocol(id);
+  if (!protocol) { res.status(404).json({ error: "not_found" }); return; }
+
+  const language = req.body?.language;
+  const rawTexts: unknown[] = Array.isArray(req.body?.texts) ? req.body.texts : [];
+  if (!["en", "es"].includes(language) || rawTexts.length === 0) {
+    res.status(400).json({ error: "invalid_body", message: "Indique o idioma (en/es) e os textos a traduzir." });
+    return;
+  }
+  // Validação estrita: limites de blocos/tamanhos e chaves únicas — evita abuso de custos de IA
+  if (rawTexts.length > 60) {
+    res.status(400).json({ error: "too_many_blocks", message: "Demasiados blocos para traduzir (máx. 60)." });
+    return;
+  }
+  const seenKeys = new Set<string>();
+  const texts: Array<{ key: string; text: string }> = [];
+  let totalChars = 0;
+  for (const t of rawTexts) {
+    const o = t as { key?: unknown; text?: unknown };
+    if (typeof o?.key !== "string" || typeof o?.text !== "string" || o.key.length === 0 || o.key.length > 120 || o.text.length > 20000 || seenKeys.has(o.key)) {
+      res.status(400).json({ error: "invalid_body", message: "Blocos de texto inválidos (chaves únicas até 120 carateres; texto até 20000 carateres)." });
+      return;
+    }
+    seenKeys.add(o.key);
+    totalChars += o.text.length;
+    texts.push({ key: o.key, text: o.text });
+  }
+  if (totalChars > 100000) {
+    res.status(400).json({ error: "too_large", message: "O documento é demasiado extenso para traduzir de uma só vez." });
+    return;
+  }
+
+  const openai = getAiClient();
+  if (!openai) { aiNotConfigured(res); return; }
+
+  const langName = language === "en" ? "inglês" : "espanhol";
+  try {
+    const parsed = (await callAiJson(openai, EXTRACT_MODEL, [
+      {
+        type: "text",
+        text:
+          `Traduz para ${langName} os textos de um relatório clínico de cirurgia ortognática. ` +
+          `Usa terminologia médica correta nesse idioma. NÃO acrescentes, resumas nem alteres informação clínica; ` +
+          `mantém números, datas, códigos (ex.: códigos OM), nomes próprios e formatação (quebras de linha) exatamente como estão. ` +
+          `Responde APENAS JSON: {"translations":[{"key":string,"text":string}]} com exatamente as mesmas keys recebidas.\n\n` +
+          `TEXTOS:\n${JSON.stringify(texts)}`,
+      },
+    ], { route: "translate-document", protocolId: id, language, blocks: texts.length })) as {
+      translations?: Array<{ key: string; text: string }>;
+    };
+    const byKey = new Map((parsed.translations ?? []).map((t) => [t.key, t.text]));
+    // Garantir todas as keys — se faltar alguma, devolve o original (nunca perde texto)
+    const translations = texts.map((t) => ({ key: t.key, text: typeof byKey.get(t.key) === "string" ? (byKey.get(t.key) as string) : t.text }));
+    res.json({ language, translations });
+  } catch (err) {
+    handleAiError(res, err);
   }
 });
 

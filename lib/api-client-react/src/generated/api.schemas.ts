@@ -467,6 +467,8 @@ export const ProtocolStatus = {
   finalized: 'finalized',
 } as const;
 
+export type ProtocolDocumentEdits = { [key: string]: unknown };
+
 export interface DiagramStroke {
   color?: string;
   width?: number;
@@ -508,6 +510,93 @@ export const LabPredictionSurgeryStart = {
   '': '',
 } as const;
 
+export type LabPredictionMaxillaComplementSegmentationParts = typeof LabPredictionMaxillaComplementSegmentationParts[keyof typeof LabPredictionMaxillaComplementSegmentationParts];
+
+
+export const LabPredictionMaxillaComplementSegmentationParts = {
+  NUMBER_2: '2',
+  NUMBER_3: '3',
+  NUMBER_4: '4',
+  '': '',
+} as const;
+
+export type LabPredictionMaxillaComplementSegmentationType = typeof LabPredictionMaxillaComplementSegmentationType[keyof typeof LabPredictionMaxillaComplementSegmentationType];
+
+
+export const LabPredictionMaxillaComplementSegmentationType = {
+  expansao: 'expansao',
+  contracao: 'contracao',
+  '': '',
+} as const;
+
+export type LabPredictionMandibleComplementRidgePlastySide = typeof LabPredictionMandibleComplementRidgePlastySide[keyof typeof LabPredictionMandibleComplementRidgePlastySide];
+
+
+export const LabPredictionMandibleComplementRidgePlastySide = {
+  D: 'D',
+  E: 'E',
+  bilateral: 'bilateral',
+  '': '',
+} as const;
+
+export type LabPredictionNasalComplementSeptumDeviationSide = typeof LabPredictionNasalComplementSeptumDeviationSide[keyof typeof LabPredictionNasalComplementSeptumDeviationSide];
+
+
+export const LabPredictionNasalComplementSeptumDeviationSide = {
+  D: 'D',
+  E: 'E',
+  '': '',
+} as const;
+
+export type LabPredictionNasalComplementVomerianSpurSide = typeof LabPredictionNasalComplementVomerianSpurSide[keyof typeof LabPredictionNasalComplementVomerianSpurSide];
+
+
+export const LabPredictionNasalComplementVomerianSpurSide = {
+  D: 'D',
+  E: 'E',
+  '': '',
+} as const;
+
+export type AlloplasticImplantRegion = typeof AlloplasticImplantRegion[keyof typeof AlloplasticImplantRegion];
+
+
+export const AlloplasticImplantRegion = {
+  malar: 'malar',
+  mandibular: 'mandibular',
+  mento: 'mento',
+  outra: 'outra',
+  '': '',
+} as const;
+
+export type AlloplasticImplantSide = typeof AlloplasticImplantSide[keyof typeof AlloplasticImplantSide];
+
+
+export const AlloplasticImplantSide = {
+  D: 'D',
+  E: 'E',
+  bilateral: 'bilateral',
+  '': '',
+} as const;
+
+export type AlloplasticImplantMaterial = typeof AlloplasticImplantMaterial[keyof typeof AlloplasticImplantMaterial];
+
+
+export const AlloplasticImplantMaterial = {
+  titanio: 'titanio',
+  outro: 'outro',
+  '': '',
+} as const;
+
+export interface AlloplasticImplant {
+  region?: AlloplasticImplantRegion;
+  side?: AlloplasticImplantSide;
+  material?: AlloplasticImplantMaterial;
+  customMade?: boolean;
+  brandReference?: string;
+  lot?: string;
+  notes?: string;
+}
+
 export type LabPredictionCheckSide = typeof LabPredictionCheckSide[keyof typeof LabPredictionCheckSide];
 
 
@@ -535,11 +624,42 @@ export type LabPredictionComplements = {
   other?: string;
 };
 
+export type LabPredictionMaxillaComplement = {
+  segmentationParts?: LabPredictionMaxillaComplementSegmentationParts;
+  segmentationType?: LabPredictionMaxillaComplementSegmentationType;
+  notes?: string;
+};
+
+export type LabPredictionMandibleComplement = {
+  atmProsthesis?: boolean;
+  ridgePlastySide?: LabPredictionMandibleComplementRidgePlastySide;
+  ridgePlastyDescription?: string;
+  notes?: string;
+};
+
+export type LabPredictionChinComplement = {
+  mentoplasty?: boolean;
+  notes?: string;
+};
+
+export type LabPredictionNasalComplement = {
+  septumDeviationSide?: LabPredictionNasalComplementSeptumDeviationSide;
+  vomerianSpurSide?: LabPredictionNasalComplementVomerianSpurSide;
+  turbinates?: boolean;
+  notes?: string;
+};
+
 export interface LabPrediction {
   mallampati?: LabPredictionMallampati;
   specialCare?: string;
   surgeryStart?: LabPredictionSurgeryStart;
   complements?: LabPredictionComplements;
+  maxillaComplement?: LabPredictionMaxillaComplement;
+  mandibleComplement?: LabPredictionMandibleComplement;
+  chinComplement?: LabPredictionChinComplement;
+  nasalComplement?: LabPredictionNasalComplement;
+  alloplasticImplants?: AlloplasticImplant[];
+  otherProcedures?: string;
   checks?: LabPredictionCheck[];
 }
 
@@ -583,6 +703,15 @@ export interface Protocol {
   /** @nullable */
   citizenCardNumber?: string | null;
   /** @nullable */
+  insuranceEntity?: string | null;
+  /** @nullable */
+  beneficiaryNumber?: string | null;
+  /** @nullable */
+  signatureRepresentative?: string | null;
+  /** @nullable */
+  signatureImagePath?: string | null;
+  documentEdits?: ProtocolDocumentEdits;
+  /** @nullable */
   expectedStay?: string | null;
   /** @nullable */
   admissionDateTime?: string | null;
@@ -623,6 +752,8 @@ export const ProtocolInputStatus = {
   finalized: 'finalized',
 } as const;
 
+export type ProtocolInputDocumentEdits = { [key: string]: unknown };
+
 export interface ProtocolInput {
   processNumber: string;
   patientName: string;
@@ -646,6 +777,11 @@ export interface ProtocolInput {
   hospital?: string;
   utenteNumber?: string;
   citizenCardNumber?: string;
+  insuranceEntity?: string;
+  beneficiaryNumber?: string;
+  signatureRepresentative?: string;
+  signatureImagePath?: string;
+  documentEdits?: ProtocolInputDocumentEdits;
   expectedStay?: string;
   admissionDateTime?: string;
   dischargeDateTime?: string;
@@ -675,6 +811,8 @@ export const ProtocolUpdateStatus = {
   finalized: 'finalized',
 } as const;
 
+export type ProtocolUpdateDocumentEdits = { [key: string]: unknown };
+
 export interface ProtocolUpdate {
   processNumber?: string;
   patientName?: string;
@@ -698,6 +836,11 @@ export interface ProtocolUpdate {
   hospital?: string;
   utenteNumber?: string;
   citizenCardNumber?: string;
+  insuranceEntity?: string;
+  beneficiaryNumber?: string;
+  signatureRepresentative?: string;
+  signatureImagePath?: string;
+  documentEdits?: ProtocolUpdateDocumentEdits;
   expectedStay?: string;
   admissionDateTime?: string;
   dischargeDateTime?: string;
@@ -800,6 +943,7 @@ export const PlanningImageCategory = {
   foto_intraoral: 'foto_intraoral',
   foto_clinica_outra: 'foto_clinica_outra',
   fotografias_clinicas: 'fotografias_clinicas',
+  cirurgia_virtual: 'cirurgia_virtual',
   cefalometria: 'cefalometria',
   renders_3d: 'renders_3d',
   tecidos_moles: 'tecidos_moles',
@@ -848,6 +992,7 @@ export const PlanningImageInputCategory = {
   foto_intraoral: 'foto_intraoral',
   foto_clinica_outra: 'foto_clinica_outra',
   fotografias_clinicas: 'fotografias_clinicas',
+  cirurgia_virtual: 'cirurgia_virtual',
   cefalometria: 'cefalometria',
   renders_3d: 'renders_3d',
   tecidos_moles: 'tecidos_moles',
@@ -879,6 +1024,7 @@ export const PlanningImageUpdateCategory = {
   foto_intraoral: 'foto_intraoral',
   foto_clinica_outra: 'foto_clinica_outra',
   fotografias_clinicas: 'fotografias_clinicas',
+  cirurgia_virtual: 'cirurgia_virtual',
   cefalometria: 'cefalometria',
   renders_3d: 'renders_3d',
   tecidos_moles: 'tecidos_moles',
@@ -900,6 +1046,34 @@ export interface PlanningImageUpdate {
   /** @nullable */
   isFinalMeasurement?: boolean | null;
   selectedForExtraction?: boolean;
+}
+
+export type TranslateDocumentBodyLanguage = typeof TranslateDocumentBodyLanguage[keyof typeof TranslateDocumentBodyLanguage];
+
+
+export const TranslateDocumentBodyLanguage = {
+  en: 'en',
+  es: 'es',
+} as const;
+
+export type TranslateDocumentBodyTextsItem = {
+  key: string;
+  text: string;
+};
+
+export interface TranslateDocumentBody {
+  language: TranslateDocumentBodyLanguage;
+  texts: TranslateDocumentBodyTextsItem[];
+}
+
+export type TranslateDocumentResultTranslationsItem = {
+  key: string;
+  text: string;
+};
+
+export interface TranslateDocumentResult {
+  language: string;
+  translations: TranslateDocumentResultTranslationsItem[];
 }
 
 export interface DiagnosisAiSuggestBody {

@@ -189,18 +189,36 @@ export type PlateTypeKey =
   | "BSSO_right" | "BSSO_left"
   | "square" | "chin" | "straight" | "custom" | "";
 
-export function PlateSvgIcon({ plateType, size = 56 }: { plateType: PlateTypeKey | string; size?: number }) {
+export function PlateSvgIcon({
+  plateType,
+  size = 56,
+  rotation = 0,
+}: {
+  plateType: PlateTypeKey | string;
+  size?: number;
+  /** Rotação em graus (ex.: 90 para colocar uma placa reta na vertical). */
+  rotation?: number;
+}) {
   const props = { size };
+  let glyph: React.ReactNode;
   switch (plateType) {
-    case "L_left_4h":   return <LLeft4h {...props} />;
-    case "L_right_4h":  return <LRight4h {...props} />;
-    case "L_left_6h":   return <LLeft6h {...props} />;
-    case "L_right_6h":  return <LRight6h {...props} />;
-    case "BSSO_right":  return <BssoRight {...props} />;
-    case "BSSO_left":   return <BssoLeft {...props} />;
-    case "square":      return <SquarePlate {...props} />;
-    case "chin":        return <ChinPlate {...props} />;
-    case "straight":    return <StraightPlate {...props} />;
-    default:            return <CustomPlate {...props} />;
+    case "L_left_4h":   glyph = <LLeft4h {...props} />; break;
+    case "L_right_4h":  glyph = <LRight4h {...props} />; break;
+    case "L_left_6h":   glyph = <LLeft6h {...props} />; break;
+    case "L_right_6h":  glyph = <LRight6h {...props} />; break;
+    case "BSSO_right":  glyph = <BssoRight {...props} />; break;
+    case "BSSO_left":   glyph = <BssoLeft {...props} />; break;
+    case "square":      glyph = <SquarePlate {...props} />; break;
+    case "chin":        glyph = <ChinPlate {...props} />; break;
+    case "straight":    glyph = <StraightPlate {...props} />; break;
+    default:            glyph = <CustomPlate {...props} />; break;
   }
+  if (!rotation) return <>{glyph}</>;
+  return (
+    <span
+      style={{ display: "inline-flex", transform: `rotate(${rotation}deg)`, transformOrigin: "center", lineHeight: 0 }}
+    >
+      {glyph}
+    </span>
+  );
 }

@@ -84,6 +84,9 @@
     "zod": "catalog:"
   },
   "dependencies": {
+    "@types/react-signature-canvas": "^1.0.7",
+    "heic2any": "^0.0.4",
+    "react-signature-canvas": "1.1.0-alpha.2",
     "three": "^0.185.1"
   }
 }

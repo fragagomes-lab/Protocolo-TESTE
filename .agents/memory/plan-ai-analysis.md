@@ -18,3 +18,8 @@ Regras acordadas com o cirurgião (não violar em trabalho futuro):
 - **PNS/ENP** = avanço REAL do lado DIREITO do maxilar; **A-Point** = lado ESQUERDO. Correspondem ao degrau (step/dobra) das placas de fixação paranasais pré-moldadas — não têm o significado cefalométrico habitual. Cada um mostra também as alterações verticais e transversais desse local.
 - **B-Point** = movimentos da mandíbula. **Pogónio** = movimento sagital de mandíbula+mento SOMADOS (+ vertical e transversal desse local).
 - **Porquê:** intra-operatoriamente o que interessa é o avanço que as placas paranasais devem ter; não existindo pontos cefalométricos nesses locais, o cirurgião convencionou usar PNS (dta) e A (esq).
+
+## Regras adicionais (ago 2026)
+- Fotografias clínicas (foto_extraoral/intraoral/clinica_outra/fotografias_clinicas) NUNCA alimentam classificação nem extração de medidas — filtradas no servidor (classify e extract) e na UI do passo "Cirurgia Virtual" (categoria própria cirurgia_virtual).
+- Chamadas de IA passam por callAiJson (json_object, deteção de truncagem, log de erros do fornecedor); imagens reduzidas com sharp (1280px) antes do envio.
+- Autosave do formulário: todas as gravações (auto+manual) serializadas numa fila latest-wins em protocol-form.tsx — nunca introduzir PATCHes paralelos ao protocolo a partir do formulário.

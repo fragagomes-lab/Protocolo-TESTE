@@ -33,6 +33,14 @@ export const protocolsTable = pgTable("protocols", {
   hospital: text("hospital"),
   utenteNumber: text("utente_number"),
   citizenCardNumber: text("citizen_card_number"),
+  // Entidade financiadora (seguro, ADSE, ...) e nº de beneficiário/apólice
+  insuranceEntity: text("insurance_entity"),
+  beneficiaryNumber: text("beneficiary_number"),
+  // Assinatura: quem assina em representação ("p/ Dr. ...") e imagem manuscrita
+  signatureRepresentative: text("signature_representative"),
+  signatureImagePath: text("signature_image_path"),
+  // Edições manuais feitas na pré-visualização dos documentos, por doc/idioma
+  documentEdits: jsonb("document_edits"),
   // Internamento previsto (ex.: "24 horas") — distinto da duração real calculada
   expectedStay: text("expected_stay"),
   admissionDateTime: text("admission_date_time"),

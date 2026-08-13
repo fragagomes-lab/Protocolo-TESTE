@@ -41,6 +41,7 @@ interface PlacedZone {
   zone: ZoneInfo;
   count: number;
   plateType: string;
+  rotation: number;
 }
 
 /** Group registered plates by their assigned zone (ignoring plates without a mapped zone). */
@@ -53,7 +54,14 @@ function groupByZone(plates: PlateRecord[]): PlacedZone[] {
     if (existing) {
       existing.count += 1;
     } else {
-      acc.set(zone.id, { zone, count: 1, plateType: p.plateType || "" });
+      acc.set(zone.id, {
+        zone,
+        count: 1,
+        plateType: p.plateType || "",
+        // A rotação é persistida na própria placa (campo livre `rotation`),
+        // por isso a visualização estática do print respeita-a automaticamente.
+        rotation: Number((p as any).rotation) || 0,
+      });
     }
   }
   return ANATOMICAL_ZONES.map((z) => acc.get(z.id)).filter(Boolean) as PlacedZone[];
@@ -80,7 +88,7 @@ function MapCore({ plates, markerSize = 22 }: { plates: PlateRecord[]; markerSiz
         <div className="relative">
           <img src={frontalImg} alt="Mapa anatómico frontal" className="w-full h-auto block" />
           {/* Plate overlays — only appear for registered plates with a chosen zone */}
-          {placed.map(({ zone, count, plateType }) => (
+          {placed.map(({ zone, count, plateType, rotation }) => (
             <div
               key={zone.id}
               className="absolute -translate-x-1/2 -translate-y-1/2"
@@ -88,7 +96,7 @@ function MapCore({ plates, markerSize = 22 }: { plates: PlateRecord[]; markerSiz
               title={`${zone.label}${count > 1 ? ` × ${count}` : ""}`}
             >
               <div className="relative flex items-center justify-center rounded-full bg-white/85 border border-primary/60 shadow-sm p-0.5">
-                <PlateSvgIcon plateType={plateType} size={markerSize} />
+                <PlateSvgIcon plateType={plateType} size={markerSize} rotation={rotation} />
                 {count > 1 && (
                   <span className="absolute -top-1.5 -right-1.5 bg-primary text-primary-foreground text-[8px] leading-none rounded-full w-3.5 h-3.5 flex items-center justify-center font-bold">
                     {count}

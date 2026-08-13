@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { isFinalizedLockError, finalizedLockMessage } from "@/lib/finalized-error";
-import { IMAGE_UPLOAD_ACCEPT, resolveContentType, isPdfName } from "@/lib/upload-utils";
+import { IMAGE_UPLOAD_ACCEPT, prepareUploadFile, isPdfName } from "@/lib/upload-utils";
 
 const isPdfImage = (img: { originalName?: string | null; objectPath?: string | null }) =>
   isPdfName(img.originalName) || isPdfName(img.objectPath);
@@ -100,17 +100,17 @@ export function ClinicalPhotosSection({ protocolId, isFinalized = false }: Clini
     for (const file of files) {
       setUploadingCount(c => c + 1);
       try {
-        const contentType = resolveContentType(file);
+        const prepared = await prepareUploadFile(file);
         const { uploadURL, objectPath } = await requestUpload({
-          data: { name: file.name, size: file.size, contentType },
+          data: { name: prepared.name, size: prepared.size, contentType: prepared.contentType },
         });
-        await fetch(uploadURL, { method: "PUT", body: file, headers: { "Content-Type": contentType } });
+        await fetch(uploadURL, { method: "PUT", body: prepared.body, headers: { "Content-Type": prepared.contentType } });
         await createImage({
           id: protocolId,
           data: {
             objectPath,
             servingUrl: "/api/storage" + objectPath,
-            originalName: file.name,
+            originalName: prepared.name,
             category: category as any,
             captureDate: new Date().toISOString().split("T")[0],
             includeInPdf: true,

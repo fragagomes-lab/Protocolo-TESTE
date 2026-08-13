@@ -96,6 +96,11 @@ router.post("/protocols", async (req, res): Promise<void> => {
     hospital,
     utenteNumber,
     citizenCardNumber,
+    insuranceEntity,
+    beneficiaryNumber,
+    signatureRepresentative,
+    signatureImagePath,
+    documentEdits,
     expectedStay,
     admissionDateTime,
     dischargeDateTime,
@@ -132,6 +137,11 @@ router.post("/protocols", async (req, res): Promise<void> => {
       hospital: hospital ?? null,
       utenteNumber: utenteNumber ?? null,
       citizenCardNumber: citizenCardNumber ?? null,
+      insuranceEntity: insuranceEntity ?? null,
+      beneficiaryNumber: beneficiaryNumber ?? null,
+      signatureRepresentative: signatureRepresentative ?? null,
+      signatureImagePath: signatureImagePath ?? null,
+      documentEdits: documentEdits ?? null,
       expectedStay: expectedStay ?? null,
       admissionDateTime: admissionDateTime ?? null,
       dischargeDateTime: dischargeDateTime ?? null,
@@ -348,6 +358,15 @@ router.patch("/protocols/:id", async (req, res): Promise<void> => {
     updateData.utenteNumber = data.utenteNumber;
   if (data.citizenCardNumber !== undefined)
     updateData.citizenCardNumber = data.citizenCardNumber;
+  if (data.insuranceEntity !== undefined)
+    updateData.insuranceEntity = data.insuranceEntity;
+  if (data.beneficiaryNumber !== undefined)
+    updateData.beneficiaryNumber = data.beneficiaryNumber;
+  if (data.signatureRepresentative !== undefined)
+    updateData.signatureRepresentative = data.signatureRepresentative;
+  if (data.signatureImagePath !== undefined)
+    updateData.signatureImagePath = data.signatureImagePath;
+  // documentEdits é tratado à parte (merge por chave em transação) — ver abaixo
   if (data.expectedStay !== undefined)
     updateData.expectedStay = data.expectedStay;
   if (data.admissionDateTime !== undefined)
@@ -367,11 +386,31 @@ router.patch("/protocols/:id", async (req, res): Promise<void> => {
   if (data.labPrediction !== undefined)
     updateData.labPrediction = data.labPrediction;
 
-  const [protocol] = await db
-    .update(protocolsTable)
-    .set(updateData)
-    .where(eq(protocolsTable.id, params.data.id))
-    .returning();
+  // documentEdits: merge por chave dentro de transação com bloqueio da linha —
+  // gravações concorrentes de blocos diferentes nunca se apagam mutuamente.
+  // Cada chave enviada é um upsert; valor null remove a chave.
+  const protocol = await db.transaction(async (tx) => {
+    if (data.documentEdits !== undefined && data.documentEdits !== null) {
+      const [fresh] = await tx
+        .select({ documentEdits: protocolsTable.documentEdits })
+        .from(protocolsTable)
+        .where(eq(protocolsTable.id, params.data.id))
+        .for("update");
+      if (!fresh) return undefined;
+      const merged: Record<string, unknown> = { ...((fresh.documentEdits as Record<string, unknown>) ?? {}) };
+      for (const [k, v] of Object.entries(data.documentEdits as Record<string, unknown>)) {
+        if (v === null) delete merged[k];
+        else merged[k] = v;
+      }
+      updateData.documentEdits = merged;
+    }
+    const [row] = await tx
+      .update(protocolsTable)
+      .set(updateData)
+      .where(eq(protocolsTable.id, params.data.id))
+      .returning();
+    return row;
+  });
 
   if (!protocol) {
     res.status(404).json({ error: "Protocol not found" });

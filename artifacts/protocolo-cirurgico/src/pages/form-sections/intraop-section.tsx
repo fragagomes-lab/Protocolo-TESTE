@@ -23,7 +23,7 @@ import {
 } from "@workspace/api-client-react";
 import {
   Plus, Trash2, ChevronDown, ChevronUp,
-  Wrench, Layers, X, AlignJustify
+  Wrench, Layers, X, AlignJustify, RotateCw
 } from "lucide-react";
 
 import { PlateSvgIcon } from "@/components/plate-svgs";
@@ -211,6 +211,11 @@ function PlateCard({ plate, index, onChange, onRemove, disabled }: PlateCardProp
   const [expanded, setExpanded] = useState(false);
   const upd = (k: keyof PlateRecord, v: any) => onChange({ ...plate, [k]: v });
 
+  // Rotação da placa no diagrama (campo livre persistido na anotação da placa).
+  const rotation = Number((plate as any).rotation) || 0;
+  const rotatePlate = () =>
+    onChange({ ...plate, rotation: (rotation + 90) % 360 } as PlateRecord);
+
   const addScrew = () => {
     const newScrew: ScrewRecord = { screwType: "monocortical", selfTapping: true, diameter: "2.0", length: 5, quantity: 1 };
     onChange({ ...plate, screws: [...(plate.screws || []), newScrew] });
@@ -240,7 +245,7 @@ function PlateCard({ plate, index, onChange, onRemove, disabled }: PlateCardProp
         aria-expanded={expanded}
       >
         <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-muted/20 rounded-sm">
-          <PlateSvgIcon plateType={plate.plateType || ""} size={36} />
+          <PlateSvgIcon plateType={plate.plateType || ""} size={36} rotation={rotation} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -257,6 +262,16 @@ function PlateCard({ plate, index, onChange, onRemove, disabled }: PlateCardProp
           )}
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-primary"
+            onClick={e => { e.stopPropagation(); rotatePlate(); }}
+            disabled={disabled}
+            title={`Rodar placa 90° (${rotation === 0 ? "horizontal" : `${rotation}°`})`}
+          >
+            <RotateCw className="h-3.5 w-3.5" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"

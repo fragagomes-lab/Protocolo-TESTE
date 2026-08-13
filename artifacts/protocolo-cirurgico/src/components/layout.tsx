@@ -7,7 +7,7 @@ import {
   PlusCircle,
   BookOpen
 } from "lucide-react";
-import logo from "@assets/clinicadaface-logo.gif";
+import logo from "@assets/clinicadaface-logo.svg";
 import { cn } from "@/lib/utils";
 
 const navigation = [
@@ -56,8 +56,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Sidebar */}
       <div className="w-64 bg-sidebar border-r border-sidebar-border flex-col hidden md:flex flex-shrink-0">
-        <div className="h-24 flex items-center px-6 border-b border-sidebar-border bg-sidebar-accent">
-          <img src={logo} alt="Clínica da Face" className="h-14 object-contain" style={{ filter: 'brightness(0) invert(1)' }} />
+        <div className="flex flex-col justify-center px-6 py-4 border-b border-sidebar-border bg-sidebar-accent">
+          <img src={logo} alt="Clínica da Face" className="h-24 w-full object-contain object-left" style={{ filter: 'brightness(0) invert(1)' }} />
+          <div className="mt-3 space-y-0.5 text-white/[0.76] leading-tight">
+            <p className="text-[11px] font-medium tracking-wide">Cirurgia Ortognática</p>
+            <p className="text-[10px] tracking-wide">
+              Dr. António Matos da Fonseca
+              <span className="block text-white/60">Médico – Cirurgia Maxilo-Facial</span>
+            </p>
+          </div>
         </div>
         
         <div className="flex-1 overflow-y-auto py-6">

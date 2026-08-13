@@ -1,18 +1,27 @@
-import { useState } from "react";
-import { useGetProtocol, useListPlanningImages, useListFiles3d, getListFiles3dQueryKey } from "@workspace/api-client-react";
+import { useState, useMemo } from "react";
+import {
+  useGetProtocol, useListPlanningImages, useListFiles3d, getListFiles3dQueryKey,
+  useUpdateProtocol, useTranslateDocument, useRequestUploadUrl,
+} from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { useParams, Link } from "wouter";
 import { format } from "date-fns";
-import logo from "@assets/clinicadaface-logo.gif";
-import { Printer, ChevronLeft, AlertTriangle } from "lucide-react";
+import logo from "@assets/clinicadaface-logo.svg";
+import { Printer, ChevronLeft, AlertTriangle, Pencil, RotateCcw, Languages, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChecklistItemStatus, PlateRecord, ScrewRecord, DrillRecord, SawRecord, SurgicalPlan, OrthoMovements, Protocol, PreopDiagnosis, LabPrediction } from "@workspace/api-client-react";
 import { LAB_CHECKS, checkOptionLabel } from "./form-sections/lab-prediction-section";
 import { AnatomicalMapPrint } from "@/components/anatomical-map";
 import { SurgicalDiagramStatic } from "@/components/surgical-diagram";
 import { DIAGRAMS } from "@/components/surgical-diagrams/diagrams";
+import { SignatureBlockEditor } from "@/components/signature-block";
+import { resolveContentType } from "@/lib/upload-utils";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -57,6 +66,59 @@ function screwSummary(screw: ScrewRecord): string {
   if (screw.screwType) parts.push(`(${SCREW_TYPE_LABELS[screw.screwType] ?? screw.screwType})`);
   if (screw.selfTapping) parts.push("AP");
   return parts.join(" ");
+}
+
+// ─── Idiomas do documento ────────────────────────────────────────────────────
+
+type DocLang = "pt" | "en" | "es";
+
+// Dicionário local para os cabeçalhos/labels fixos das secções principais.
+// A UI da app mantém-se em português; isto traduz apenas o documento gerado.
+const I18N: Record<string, Record<DocLang, string>> = {
+  "doc.protocolo": { pt: "Protocolo Operatório", en: "Operative Protocol", es: "Protocolo Operatorio" },
+  "doc.nota": { pt: "Nota de Alta", en: "Discharge Note", es: "Nota de Alta" },
+  "doc.relatorio": { pt: "Relatório Clínico", en: "Clinical Report", es: "Informe Clínico" },
+  "hdr.tagline1": { pt: "Cirurgia Ortognática", en: "Orthognathic Surgery", es: "Cirugía Ortognática" },
+  "sec.identification": { pt: "Identificação do Doente", en: "Patient Identification", es: "Identificación del Paciente" },
+  "sec.surgeryData": { pt: "Dados da Cirurgia / Internamento", en: "Surgery / Admission Details", es: "Datos de la Cirugía / Ingreso" },
+  "sec.diagnosis": { pt: "Diagnóstico", en: "Diagnosis", es: "Diagnóstico" },
+  "sec.summary": { pt: "Resumo", en: "Summary", es: "Resumen" },
+  "sec.operativeReport": { pt: "Descritivo Operatório", en: "Operative Report", es: "Descripción Operatoria" },
+  "sec.operativeReport.nota_bloco": { pt: "Relato Operatório", en: "Operative Report", es: "Relato Operatorio" },
+  "sec.operativeReport.nota": { pt: "Cirurgia", en: "Surgery", es: "Cirugía" },
+  "sec.recommendations": { pt: "Recomendações Pós-Operatórias", en: "Post-operative Recommendations", es: "Recomendaciones Postoperatorias" },
+  "sec.recommendations.nota": { pt: "Recomendações", en: "Recommendations", es: "Recomendaciones" },
+  "sec.homeMedication": { pt: "Medicação para Domicílio", en: "Home Medication", es: "Medicación para Domicilio" },
+  "sec.nextAppointment": { pt: "Próxima Consulta", en: "Next Appointment", es: "Próxima Consulta" },
+  "sec.labPrediction": { pt: "Protocolo/Execução Cirúrgica", en: "Surgical Protocol / Execution", es: "Protocolo/Ejecución Quirúrgica" },
+};
+
+function t(key: string, lang: DocLang): string {
+  return I18N[key]?.[lang] ?? I18N[key]?.pt ?? key;
+}
+
+// ─── Relato operatório: mover parágrafos de cirurgia virtual / guias para o fim ──
+// Não altera os dados gravados; apenas reordena na renderização.
+const VIRTUAL_SURGERY_RE = /cirurgia\s+virtual|guias?\s+cir[uú]rgicas?/i;
+
+function reorderOperativeDescription(text?: string | null): string {
+  if (!text) return "";
+  const paragraphs = text.split(/\n{2,}/);
+  if (paragraphs.length <= 1) return text;
+  const moved: string[] = [];
+  const kept: string[] = [];
+  let stillLeading = true;
+  for (const p of paragraphs) {
+    // Só movemos os parágrafos que aparecem NO INÍCIO do texto.
+    if (stillLeading && VIRTUAL_SURGERY_RE.test(p)) {
+      moved.push(p);
+    } else {
+      stillLeading = false;
+      kept.push(p);
+    }
+  }
+  if (moved.length === 0) return text;
+  return [...kept, ...moved].join("\n\n");
 }
 
 // ─── Plano Cirúrgico print sub-section ──────────────────────────────────────
@@ -399,7 +461,7 @@ const SECTION_DEFS: Array<{ key: SectionKey; label: string }> = [
   { key: "surgeryData", label: "Dados da cirurgia / internamento" },
   { key: "team", label: "Equipa cirúrgica" },
   { key: "diagnosis", label: "Diagnóstico" },
-  { key: "labPrediction", label: "Previsão Laboratorial" },
+  { key: "labPrediction", label: "Protocolo/Execução Cirúrgica" },
   { key: "checklist", label: "Checklist pré-operatória" },
   { key: "plan", label: "Plano cirúrgico (movimentos)" },
   { key: "planningImages", label: "Imagens de planeamento" },
@@ -559,14 +621,14 @@ const COMPLEMENT_LABELS: Array<{ key: "septoplasty" | "segmented" | "mentoplasty
   { key: "atmProsthesis", label: "Prótese ATM" },
 ];
 
-function LabPredictionPrint({ lab }: { lab: LabPrediction }) {
+function LabPredictionPrint({ lab, lang = "pt" }: { lab: LabPrediction; lang?: DocLang }) {
   const checks = lab.checks ?? [];
   const complements = lab.complements ?? {};
   const activeComplements = COMPLEMENT_LABELS.filter((c) => complements[c.key]);
   return (
     <div className="mb-8">
       <h2 className="text-sm font-bold uppercase tracking-widest bg-gray-100 p-2 mb-4 border-l-4 border-primary">
-        Previsão Laboratorial
+        {t("sec.labPrediction", lang)}
       </h2>
       <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm mb-4">
         <div><span className="font-semibold text-gray-600">Mallampati:</span> {lab.mallampati ? MALLAMPATI_LABELS[lab.mallampati] || lab.mallampati : "—"}</div>
@@ -610,6 +672,7 @@ function LabPredictionPrint({ lab }: { lab: LabPrediction }) {
           </tbody>
         </table>
       )}
+      <StructuredComplements lab={lab} />
     </div>
   );
 }
@@ -625,20 +688,27 @@ function ClinicFooter({ legal }: { legal?: boolean }) {
           Relatório assinado digitalmente. Esta é uma impressão do original que está disponível para consulta, nos termos da Lei.
         </p>
       )}
-      <p className="font-semibold text-gray-700">Clínica da Face — Complexo Hospitalar das Torres de Lisboa</p>
-      <p>Rua Tomás da Fonseca, Torre F, Piso 1 · 1600-209 Lisboa – Portugal</p>
-      <p>Tel. +351 21 721 09 00 · +351 93 721 09 00 · clinica@clinicadaface.com · www.clinicadaface.com</p>
+      <p className="font-semibold text-gray-700">Clínica da Face</p>
+      <p>Avenida José Gomes Ferreira, 15, Piso 4, Edifício Atlas IV, 1495-139 Algés – Lisboa</p>
+      <p>Tel. +351 217 210 900 · +351 937 210 900 · WhatsApp +351 937 210 900 · www.clinicadaface.com · clinica@clinicadaface.com</p>
     </div>
   );
 }
 
-function SurgeonSignature() {
+function SurgeonSignature({ representative, signatureUrl }: { representative?: string | null; signatureUrl?: string | null }) {
+  const rep = representative?.trim();
   return (
     <div className="mt-16 flex justify-end pr-8">
-      <div className="text-center w-64">
-        <div className="border-b border-black mb-2 h-14"></div>
-        <div className="text-xs font-bold">A. Matos da Fonseca</div>
-        <div className="text-[10px] uppercase tracking-widest text-gray-500">Cirurgia Maxilo-Facial</div>
+      <div className="text-center w-72">
+        {signatureUrl ? (
+          <img src={signatureUrl} alt="Assinatura" className="mx-auto h-16 object-contain mb-1" />
+        ) : (
+          <div className="border-b border-black mb-2 h-14"></div>
+        )}
+        {rep && <div className="text-xs text-gray-600">p/ Dr. António Matos da Fonseca</div>}
+        <div className="text-sm font-bold">{rep || "Dr. António Matos da Fonseca"}</div>
+        <div className="text-[10px] text-gray-600">Médico – Cirurgião Maxilo-Facial</div>
+        <div className="text-[10px] text-gray-500">Cédula Profissional OM n.º 21892</div>
       </div>
     </div>
   );
@@ -649,6 +719,171 @@ function PrintSection({ title, children }: { title: string; children: React.Reac
     <div className="mb-8">
       <h2 className="text-sm font-bold uppercase tracking-widest bg-gray-100 p-2 mb-4 border-l-4 border-primary">{title}</h2>
       {children}
+    </div>
+  );
+}
+
+// ─── Bloco de texto editável na pré-visualização ────────────────────────────
+// Mostra o texto derivado ou a edição gravada (documentEdits). Permite editar
+// diretamente (textarea inline) e repor o texto original. Os controlos são
+// ocultados na impressão (print:hidden).
+interface EditableTextProps {
+  value: string;
+  hasEdit: boolean;
+  className?: string;
+  placeholder?: string;
+  onSave: (text: string) => void;
+  onReset: () => void;
+  disabled?: boolean;
+  saving?: boolean;
+}
+
+function EditableText({ value, hasEdit, className, placeholder, onSave, onReset, disabled, saving }: EditableTextProps) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  const startEdit = () => { setDraft(value); setEditing(true); };
+  const commit = () => { onSave(draft); setEditing(false); };
+
+  if (editing) {
+    return (
+      <div className="print:hidden">
+        <Textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          rows={Math.min(20, Math.max(4, draft.split("\n").length + 1))}
+          className="text-sm font-serif rounded-sm"
+        />
+        <div className="flex gap-2 mt-2">
+          <Button type="button" size="sm" className="text-xs rounded-sm" onClick={commit} disabled={saving}>
+            {saving ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : null} Guardar
+          </Button>
+          <Button type="button" size="sm" variant="ghost" className="text-xs rounded-sm" onClick={() => setEditing(false)} disabled={saving}>
+            Cancelar
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="group relative">
+      <div className={className}>{value || placeholder || "—"}</div>
+      {!disabled && (
+        <div className="print:hidden mt-1 flex gap-3 opacity-60 group-hover:opacity-100 transition-opacity">
+          <button type="button" onClick={startEdit} className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline">
+            <Pencil className="h-3 w-3" /> Editar
+          </button>
+          {hasEdit && (
+            <button type="button" onClick={onReset} className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-destructive hover:underline">
+              <RotateCcw className="h-3 w-3" /> Repor texto original
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Protocolo/Execução Cirúrgica — novos campos estruturados ────────────────
+const SEGMENTATION_TYPE_LABELS: Record<string, string> = { expansao: "Expansão", contracao: "Contração" };
+const SIDE_LABELS: Record<string, string> = { D: "Direito", E: "Esquerdo", bilateral: "Bilateral" };
+const IMPLANT_REGION_LABELS: Record<string, string> = { malar: "Malar", mandibular: "Mandibular", mento: "Mento", outra: "Outra" };
+const IMPLANT_MATERIAL_LABELS: Record<string, string> = { titanio: "Titânio", outro: "Outro" };
+
+function StructuredComplements({ lab }: { lab: LabPrediction }) {
+  const mx = lab.maxillaComplement;
+  const md = lab.mandibleComplement;
+  const chin = lab.chinComplement;
+  const nasal = lab.nasalComplement;
+  const implants = lab.alloplasticImplants ?? [];
+  const other = lab.otherProcedures;
+
+  const rows: Array<{ region: string; detail: string }> = [];
+
+  if (mx && (mx.segmentationParts || mx.segmentationType || mx.notes)) {
+    const parts: string[] = [];
+    if (mx.segmentationParts) parts.push(`Segmentação em ${mx.segmentationParts} partes`);
+    if (mx.segmentationType) parts.push(SEGMENTATION_TYPE_LABELS[mx.segmentationType] || mx.segmentationType);
+    if (mx.notes) parts.push(mx.notes);
+    if (parts.length) rows.push({ region: "Maxila", detail: parts.join(" • ") });
+  }
+  if (md && (md.atmProsthesis || md.ridgePlastySide || md.ridgePlastyDescription || md.notes)) {
+    const parts: string[] = [];
+    if (md.atmProsthesis) parts.push("Prótese ATM");
+    if (md.ridgePlastySide || md.ridgePlastyDescription) {
+      parts.push(`Plastia de crista${md.ridgePlastySide ? ` (${SIDE_LABELS[md.ridgePlastySide] || md.ridgePlastySide})` : ""}${md.ridgePlastyDescription ? ` — ${md.ridgePlastyDescription}` : ""}`);
+    }
+    if (md.notes) parts.push(md.notes);
+    if (parts.length) rows.push({ region: "Mandíbula", detail: parts.join(" • ") });
+  }
+  if (chin && (chin.mentoplasty || chin.notes)) {
+    const parts: string[] = [];
+    if (chin.mentoplasty) parts.push("Mentoplastia");
+    if (chin.notes) parts.push(chin.notes);
+    if (parts.length) rows.push({ region: "Mento", detail: parts.join(" • ") });
+  }
+  if (nasal && (nasal.septumDeviationSide || nasal.vomerianSpurSide || nasal.turbinates || nasal.notes)) {
+    const parts: string[] = [];
+    if (nasal.septumDeviationSide) parts.push(`Desvio do septo (${SIDE_LABELS[nasal.septumDeviationSide] || nasal.septumDeviationSide})`);
+    if (nasal.vomerianSpurSide) parts.push(`Esporão vomeriano (${SIDE_LABELS[nasal.vomerianSpurSide] || nasal.vomerianSpurSide})`);
+    if (nasal.turbinates) parts.push("Cornetos");
+    if (nasal.notes) parts.push(nasal.notes);
+    if (parts.length) rows.push({ region: "Nariz", detail: parts.join(" • ") });
+  }
+
+  if (rows.length === 0 && implants.length === 0 && !other) return null;
+
+  return (
+    <div className="mt-4">
+      <div className="text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Complementos por Região</div>
+      {rows.length > 0 && (
+        <table className="w-full text-xs border-collapse border border-gray-300 mb-3">
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}>
+                <td className="border border-gray-300 px-2 py-1 font-semibold w-28 align-top">{r.region}</td>
+                <td className="border border-gray-300 px-2 py-1">{r.detail}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {implants.length > 0 && (
+        <div className="mb-3">
+          <div className="text-[11px] font-semibold text-gray-600 mb-1">Implantes aloplásticos</div>
+          <table className="w-full text-xs border-collapse border border-gray-300">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="border border-gray-300 px-2 py-1 text-left">Região</th>
+                <th className="border border-gray-300 px-2 py-1 text-left">Lado</th>
+                <th className="border border-gray-300 px-2 py-1 text-left">Material</th>
+                <th className="border border-gray-300 px-2 py-1 text-center">CAD/CAM</th>
+                <th className="border border-gray-300 px-2 py-1 text-left">Marca / Ref.</th>
+                <th className="border border-gray-300 px-2 py-1 text-left">Lote</th>
+              </tr>
+            </thead>
+            <tbody>
+              {implants.map((im, i) => (
+                <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}>
+                  <td className="border border-gray-300 px-2 py-1">{im.region ? (IMPLANT_REGION_LABELS[im.region] || im.region) : "—"}</td>
+                  <td className="border border-gray-300 px-2 py-1">{im.side ? (SIDE_LABELS[im.side] || im.side) : "—"}</td>
+                  <td className="border border-gray-300 px-2 py-1">{im.material ? (IMPLANT_MATERIAL_LABELS[im.material] || im.material) : "—"}</td>
+                  <td className="border border-gray-300 px-2 py-1 text-center">{im.customMade ? "✓" : "—"}</td>
+                  <td className="border border-gray-300 px-2 py-1">{im.brandReference || "—"}</td>
+                  <td className="border border-gray-300 px-2 py-1 font-mono">{im.lot || "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {other && (
+        <div className="text-xs">
+          <span className="font-semibold text-gray-600">Outros procedimentos:</span>{" "}
+          <span className="whitespace-pre-wrap">{other}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -671,11 +906,22 @@ export function ProtocolPrint() {
     query: { enabled: !isNew, queryKey: getListFiles3dQueryKey(Number(id)) }
   });
 
+  const queryClient = useQueryClient();
+  const { mutateAsync: updateProtocol } = useUpdateProtocol();
+  const { mutateAsync: translateDocument, isPending: isTranslating } = useTranslateDocument();
+  const { mutateAsync: requestUpload } = useRequestUploadUrl();
+
   // Seleção de secções — nunca imprimir tudo automaticamente:
   // começa vazia; o utilizador escolhe um preset ou marca as secções.
   const [sel, setSel] = useState<Record<SectionKey, boolean>>(emptySelection);
   const [docStyle, setDocStyle] = useState<DocStyle>("protocolo");
   const [activePreset, setActivePreset] = useState<string | null>(null);
+  const [language, setLanguage] = useState<DocLang>("pt");
+
+  // Seleção individual de fotografias no documento — NENHUMA por omissão.
+  const [selectedPhotoIds, setSelectedPhotoIds] = useState<Record<number, boolean>>({});
+  const [includeHeaderPhoto, setIncludeHeaderPhoto] = useState(false);
+  const [savingEditKey, setSavingEditKey] = useState<string | null>(null);
 
   const applyPreset = (presetId: string) => {
     const preset = PRESETS.find((p) => p.id === presetId);
@@ -715,12 +961,21 @@ export function ProtocolPrint() {
   // PDFs não podem ser embebidos como <img> — excluir do relatório impresso
   const isPdfDoc = (img: { originalName?: string | null; objectPath?: string | null }) =>
     !!(img.originalName?.toLowerCase().endsWith(".pdf") || img.objectPath?.toLowerCase().endsWith(".pdf"));
-  const headerPhoto = planningImages.find(img => img.isHeaderPhoto && img.includeInPdf && !isPdfDoc(img));
-  const clinicalPhotos = planningImages.filter(
-    img => img.includeInPdf && CLINICAL_PHOTO_CATEGORIES.includes(img.category) && !isPdfDoc(img)
+  // Fotografia de identificação (cabeçalho): checkbox própria, desmarcada por omissão.
+  const headerPhotoCandidate = planningImages.find(img => img.isHeaderPhoto && !isPdfDoc(img));
+  const headerPhoto = includeHeaderPhoto ? headerPhotoCandidate : undefined;
+
+  // Todas as fotografias que hoje podem sair no documento (excl. PDFs e a de identificação).
+  const selectablePhotos = useMemo(
+    () => planningImages.filter(img => !isPdfDoc(img) && !img.isHeaderPhoto),
+    [planningImages],
   );
-  const pdfImages = planningImages.filter(
-    img => img.includeInPdf && !CLINICAL_PHOTO_CATEGORIES.includes(img.category) && !isPdfDoc(img)
+  // Só as escolhidas entram no documento — nenhuma marcada por omissão.
+  const clinicalPhotos = selectablePhotos.filter(
+    img => selectedPhotoIds[img.id] && CLINICAL_PHOTO_CATEGORIES.includes(img.category)
+  );
+  const pdfImages = selectablePhotos.filter(
+    img => selectedPhotoIds[img.id] && !CLINICAL_PHOTO_CATEGORIES.includes(img.category)
   );
   const pdfFiles3d = files3d.filter(f => f.includeInPdf);
   const piezo = protocol?.piezoEquipment;
@@ -748,6 +1003,103 @@ export function ProtocolPrint() {
     window.print();
   };
 
+  const invalidateProtocol = () => {
+    queryClient.invalidateQueries({ queryKey: ['getProtocol', Number(id)] });
+  };
+
+  // ── documentEdits: chave "${docStyle}:${language}:${blockKey}" ──
+  const docEdits = (protocol.documentEdits ?? {}) as Record<string, unknown>;
+  const editKey = (blockKey: string) => `${docStyle}:${language}:${blockKey}`;
+  const getEdit = (blockKey: string): string | undefined => {
+    const v = docEdits[editKey(blockKey)];
+    return typeof v === "string" ? v : undefined;
+  };
+  // Texto a mostrar: edição gravada tem prioridade sobre o texto derivado.
+  const resolveText = (blockKey: string, derived: string): string => getEdit(blockKey) ?? derived;
+  const hasEdit = (blockKey: string): boolean => getEdit(blockKey) !== undefined;
+
+  // O servidor faz merge por chave: cada chave enviada é upsert; valor null
+  // APAGA a chave. Enviar apenas as chaves afetadas evita apagar edições de
+  // outros blocos/idiomas gravadas em paralelo.
+  const mergeEdits = async (patch: Record<string, unknown>) => {
+    await updateProtocol({ id: Number(id), data: { documentEdits: patch } });
+    invalidateProtocol();
+  };
+
+  const saveEdit = async (blockKey: string, text: string) => {
+    const key = editKey(blockKey);
+    setSavingEditKey(key);
+    try {
+      await mergeEdits({ [key]: text });
+    } catch {
+      toast.error("Não foi possível guardar a edição.");
+    } finally {
+      setSavingEditKey(null);
+    }
+  };
+
+  const resetEdit = async (blockKey: string) => {
+    const key = editKey(blockKey);
+    try {
+      // null apaga a chave no servidor
+      await mergeEdits({ [key]: null });
+    } catch {
+      toast.error("Não foi possível repor o texto original.");
+    }
+  };
+
+  // ── Assinatura ──
+  const uploadSignatureBlob = async (blob: Blob, name: string, contentType: string) => {
+    const { uploadURL, objectPath } = await requestUpload({
+      data: { name, size: blob.size, contentType },
+    });
+    await fetch(uploadURL, { method: "PUT", body: blob, headers: { "Content-Type": contentType } });
+    await updateProtocol({
+      id: Number(id),
+      data: { signatureImagePath: objectPath },
+    });
+    invalidateProtocol();
+  };
+
+  const handleSignatureDataUrl = async (dataUrl: string) => {
+    try {
+      const blob = await (await fetch(dataUrl)).blob();
+      await uploadSignatureBlob(blob, "assinatura.png", "image/png");
+      toast.success("Assinatura guardada.");
+    } catch {
+      toast.error("Erro ao guardar a assinatura.");
+    }
+  };
+
+  const handleSignatureFile = async (file: File) => {
+    try {
+      await uploadSignatureBlob(file, file.name, resolveContentType(file));
+      toast.success("Assinatura carregada.");
+    } catch {
+      toast.error("Erro ao carregar a assinatura.");
+    }
+  };
+
+  const handleSignatureClear = async () => {
+    try {
+      await updateProtocol({ id: Number(id), data: { signatureImagePath: "" } });
+      invalidateProtocol();
+    } catch {
+      toast.error("Erro ao remover a assinatura.");
+    }
+  };
+
+  const handleRepresentativeChange = async (value: string) => {
+    try {
+      await updateProtocol({ id: Number(id), data: { signatureRepresentative: value } });
+      invalidateProtocol();
+    } catch {
+      toast.error("Erro ao guardar o nome do representante.");
+    }
+  };
+
+  const signatureUrl = protocol.signatureImagePath ? "/api/storage" + protocol.signatureImagePath : null;
+
   const checkStatusLabel = {
     [ChecklistItemStatus.ok]: "Ok",
     [ChecklistItemStatus.missing]: "Em falta",
@@ -761,10 +1113,10 @@ export function ProtocolPrint() {
   const diagText = diagnosisNarrative(protocol.preopDiagnosis);
 
   const docTitle =
-    docStyle === "nota_cdf" ? "Nota de Alta"
-    : docStyle === "nota_bloco" ? "Nota de Alta"
-    : docStyle === "relatorio" ? "Relatório Clínico"
-    : "Protocolo Operatório";
+    docStyle === "nota_cdf" ? t("doc.nota", language)
+    : docStyle === "nota_bloco" ? t("doc.nota", language)
+    : docStyle === "relatorio" ? t("doc.relatorio", language)
+    : t("doc.protocolo", language);
   const isRelatorio = docStyle === "relatorio";
   const medicalActs = deriveMedicalActs(protocol.surgicalPlan);
   const surgeonOm = protocol.team?.surgeonOmNumber || "21892";
@@ -854,49 +1206,128 @@ export function ProtocolPrint() {
     </PrintSection>
   );
 
-  const recommendationsBlock = sel.recommendations && protocol.postopRecommendations && (
-    <PrintSection title={isNota ? "Recomendações" : "Recomendações Pós-Operatórias"}>
-      <div className="text-sm leading-relaxed whitespace-pre-wrap font-serif">{protocol.postopRecommendations}</div>
+  const editProps = (blockKey: string) => ({
+    hasEdit: hasEdit(blockKey),
+    onSave: (text: string) => saveEdit(blockKey, text),
+    onReset: () => resetEdit(blockKey),
+    saving: savingEditKey === editKey(blockKey),
+  });
+
+  const recommendationsDerived = protocol.postopRecommendations || "";
+  const recommendationsText = resolveText("recommendations", recommendationsDerived);
+  const recommendationsBlock = sel.recommendations && recommendationsText && (
+    <PrintSection title={isNota ? t("sec.recommendations.nota", language) : t("sec.recommendations", language)}>
+      <EditableText
+        value={recommendationsText}
+        className="text-sm leading-relaxed whitespace-pre-wrap font-serif"
+        {...editProps("recommendations")}
+      />
     </PrintSection>
   );
 
-  const homeMedicationBlock = sel.homeMedication && protocol.homeMedication && (
-    <PrintSection title="Medicação para Domicílio">
-      <div className="text-sm leading-relaxed whitespace-pre-wrap font-serif">{protocol.homeMedication}</div>
+  const homeMedicationText = resolveText("homeMedication", protocol.homeMedication || "");
+  const homeMedicationBlock = sel.homeMedication && homeMedicationText && (
+    <PrintSection title={t("sec.homeMedication", language)}>
+      <EditableText
+        value={homeMedicationText}
+        className="text-sm leading-relaxed whitespace-pre-wrap font-serif"
+        {...editProps("homeMedication")}
+      />
     </PrintSection>
   );
 
+  // Cirurgia virtual / guias cirúrgicas surgem sempre no FIM do relato.
+  const operativeDerived = reorderOperativeDescription(protocol.operativeDescription) || "Nenhum descritivo operatório registado.";
+  const operativeText = resolveText("operativeReport", operativeDerived);
+  const operativeTitle = isNota
+    ? (docStyle === "nota_bloco" ? t("sec.operativeReport.nota_bloco", language) : t("sec.operativeReport.nota", language))
+    : t("sec.operativeReport", language);
   const operativeReportBlock = sel.operativeReport && (
-    <PrintSection title={isNota ? (docStyle === "nota_bloco" ? "Relato Operatório" : "Cirurgia") : "Descritivo Operatório"}>
-      <div className="text-sm leading-relaxed whitespace-pre-wrap font-serif text-justify">
-        {protocol.operativeDescription || "Nenhum descritivo operatório registado."}
-      </div>
+    <PrintSection title={operativeTitle}>
+      <EditableText
+        value={operativeText}
+        className="text-sm leading-relaxed whitespace-pre-wrap font-serif text-justify"
+        {...editProps("operativeReport")}
+      />
     </PrintSection>
   );
 
+  const summaryDerived = [
+    `Doente submetido(a) a ${protocol.surgeryType || "cirurgia ortognática"} sob anestesia geral.`,
+    duration ? `Internamento com a duração de ${duration}.` : "",
+    protocol.nextAppointmentDate
+      ? `Próxima consulta: ${format(new Date(protocol.nextAppointmentDate), "dd/MM/yyyy")}${protocol.nextAppointmentTime ? ` às ${protocol.nextAppointmentTime}` : ""} — ${protocol.nextAppointmentLocation || "Clínica da Face"}.`
+      : "",
+  ].filter(Boolean).join("\n");
+  const summaryText = resolveText("summary", summaryDerived);
   const summaryBlock = sel.summary && (
-    <PrintSection title="Resumo">
-      <div className="text-sm leading-relaxed font-serif">
-        <p>Doente submetido(a) a {protocol.surgeryType || "cirurgia ortognática"} sob anestesia geral.</p>
-        {duration && <p>Internamento com a duração de {duration}.</p>}
-        {protocol.nextAppointmentDate && (
-          <p>
-            Próxima consulta: {format(new Date(protocol.nextAppointmentDate), "dd/MM/yyyy")}
-            {protocol.nextAppointmentTime ? ` às ${protocol.nextAppointmentTime}` : ""} — {protocol.nextAppointmentLocation || "Clínica da Face"}.
-          </p>
-        )}
-      </div>
+    <PrintSection title={t("sec.summary", language)}>
+      <EditableText
+        value={summaryText}
+        className="text-sm leading-relaxed whitespace-pre-wrap font-serif"
+        {...editProps("summary")}
+      />
     </PrintSection>
   );
+
+  const internalNotesText = resolveText("internalNotes", protocol.postopNotes || "");
 
   // O texto do Construtor de Diagnóstico (editável pelo cirurgião) tem
   // prioridade; sem ele, usa-se o resumo gerado dos campos estruturados.
-  const narrativeText = protocol.preopDiagnosis?.diagnosisNarrative?.trim() || diagText;
+  const narrativeDerived = protocol.preopDiagnosis?.diagnosisNarrative?.trim() || diagText;
+  const narrativeText = resolveText("diagnosis", narrativeDerived);
   const diagnosisBlock = sel.diagnosis && narrativeText && (
-    <PrintSection title="Diagnóstico">
-      <div className="text-sm leading-relaxed whitespace-pre-wrap font-serif">{narrativeText}</div>
+    <PrintSection title={t("sec.diagnosis", language)}>
+      <EditableText
+        value={narrativeText}
+        className="text-sm leading-relaxed whitespace-pre-wrap font-serif"
+        {...editProps("diagnosis")}
+      />
     </PrintSection>
   );
+
+  // ── Tradução do documento (EN/ES) ──
+  // Blocos de texto traduzíveis e respetivo texto-fonte em PT (texto derivado).
+  const TRANSLATABLE_DERIVED: Array<{ blockKey: string; text: string; selected: boolean }> = [
+    { blockKey: "diagnosis", text: narrativeDerived, selected: sel.diagnosis },
+    { blockKey: "operativeReport", text: operativeDerived, selected: sel.operativeReport },
+    { blockKey: "recommendations", text: recommendationsDerived, selected: sel.recommendations },
+    { blockKey: "homeMedication", text: protocol.homeMedication || "", selected: sel.homeMedication },
+    { blockKey: "summary", text: summaryDerived, selected: sel.summary },
+    { blockKey: "internalNotes", text: protocol.postopNotes || "", selected: sel.internalNotes },
+  ];
+
+  const handleTranslate = async () => {
+    if (language === "pt") return;
+    const texts = TRANSLATABLE_DERIVED
+      .filter((b) => b.selected && b.text.trim())
+      .map((b) => ({ key: b.blockKey, text: b.text }));
+    if (texts.length === 0) {
+      toast.info("Não há blocos de texto visíveis para traduzir.");
+      return;
+    }
+    // Se já existirem textos traduzidos/editados neste idioma para os blocos a
+    // traduzir, confirma antes de substituir.
+    const hasExisting = texts.some((tx) => {
+      const v = docEdits[`${docStyle}:${language}:${tx.key}`];
+      return typeof v === "string" && v.trim().length > 0;
+    });
+    if (hasExisting && !window.confirm("Já existem textos traduzidos/editados neste idioma — substituir? Os atuais serão perdidos.")) {
+      return;
+    }
+    try {
+      const result = await translateDocument({ id: Number(id), data: { language, texts } });
+      // Merge por chave: envia apenas as chaves traduzidas.
+      const patch: Record<string, unknown> = {};
+      for (const tr of result.translations) {
+        patch[`${docStyle}:${language}:${tr.key}`] = tr.text;
+      }
+      await mergeEdits(patch);
+      toast.success("Documento traduzido. Pode rever e editar cada bloco.");
+    } catch {
+      toast.error("Não foi possível traduzir o documento.");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -949,6 +1380,86 @@ export function ProtocolPrint() {
             </p>
           )}
         </div>
+
+        {/* Idioma do documento + tradução */}
+        <div className="border border-border rounded-sm p-6 bg-muted/20 mt-6">
+          <div className="text-sm font-bold uppercase tracking-widest text-primary mb-3">Idioma do documento</div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Select value={language} onValueChange={(v) => setLanguage(v as DocLang)}>
+              <SelectTrigger className="w-48 rounded-sm text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pt">Português</SelectItem>
+                <SelectItem value="en">Inglês</SelectItem>
+                <SelectItem value="es">Espanhol</SelectItem>
+              </SelectContent>
+            </Select>
+            {language !== "pt" && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="text-xs rounded-sm"
+                onClick={handleTranslate}
+                disabled={isTranslating || selectedCount === 0}
+              >
+                {isTranslating ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Languages className="mr-1.5 h-3.5 w-3.5" />}
+                Traduzir documento
+              </Button>
+            )}
+          </div>
+          {language !== "pt" && (
+            <p className="text-[11px] text-muted-foreground mt-2">
+              As traduções ficam gravadas e editáveis por bloco. PT mantém o comportamento atual.
+            </p>
+          )}
+        </div>
+
+        {/* Fotografias no documento */}
+        {(selectablePhotos.length > 0 || headerPhotoCandidate) && (
+          <div className="border border-border rounded-sm p-6 bg-muted/20 mt-6">
+            <div className="text-sm font-bold uppercase tracking-widest text-primary mb-1">Fotografias no documento</div>
+            <p className="text-xs text-muted-foreground mb-4">Nenhuma é incluída por omissão — selecione as que pretende no documento.</p>
+
+            {headerPhotoCandidate && (
+              <label className="flex items-center gap-3 text-xs cursor-pointer mb-4 pb-4 border-b border-border/60">
+                <Checkbox checked={includeHeaderPhoto} onCheckedChange={() => setIncludeHeaderPhoto((v) => !v)} />
+                <img src={headerPhotoCandidate.servingUrl} alt="Identificação" className="w-12 h-12 object-cover border border-border rounded-sm" />
+                <span>Foto de identificação no documento</span>
+              </label>
+            )}
+
+            {selectablePhotos.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {selectablePhotos.map((img) => (
+                  <label key={img.id} className="flex items-start gap-2 text-[11px] cursor-pointer border border-border/60 rounded-sm p-2">
+                    <Checkbox
+                      checked={!!selectedPhotoIds[img.id]}
+                      onCheckedChange={() => setSelectedPhotoIds((prev) => ({ ...prev, [img.id]: !prev[img.id] }))}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <img src={img.servingUrl} alt={img.caption || img.originalName || "Fotografia"} className="w-full h-20 object-cover border border-border rounded-sm mb-1" />
+                      <div className="truncate text-muted-foreground">{img.caption || img.originalName || CLINICAL_PHOTO_LABELS[img.category] || img.category.replace(/_/g, " ")}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Assinatura */}
+        <div className="mt-6">
+          <SignatureBlockEditor
+            representative={protocol.signatureRepresentative || ""}
+            onRepresentativeCommit={handleRepresentativeChange}
+            signatureImageUrl={signatureUrl}
+            onUploadDataUrl={handleSignatureDataUrl}
+            onUploadFile={handleSignatureFile}
+            onClearImage={handleSignatureClear}
+          />
+        </div>
         {selectedCount > 0 && (
           <div className="text-xs uppercase tracking-widest text-muted-foreground mt-6 mb-2">Pré-visualização</div>
         )}
@@ -976,7 +1487,8 @@ export function ProtocolPrint() {
         <div className="flex justify-between items-start border-b-2 border-black pb-6 mb-8">
           <div>
             <img src={logo} alt="Clínica da Face" className="h-16 object-contain" />
-            <div className="mt-2 text-xs text-gray-500 font-serif">Cirurgia Maxilofacial &bull; Implantologia &bull; Ortodontia</div>
+            <div className="mt-2 text-xs text-gray-600 font-serif">{t("hdr.tagline1", language)}</div>
+            <div className="text-xs text-gray-500 font-serif">Dr. António Matos da Fonseca (Médico – Cirurgia Maxilo-Facial)</div>
           </div>
           <div className="text-right">
             <h1 className="text-2xl font-bold uppercase tracking-widest text-primary">{docTitle}</h1>
@@ -1028,7 +1540,7 @@ export function ProtocolPrint() {
           </PrintSection>
         )}
 
-        {sel.labPrediction && protocol.labPrediction && <LabPredictionPrint lab={protocol.labPrediction} />}
+        {sel.labPrediction && protocol.labPrediction && <LabPredictionPrint lab={protocol.labPrediction} lang={language} />}
 
         {sel.checklist && (protocol.checklist?.length ?? 0) > 0 && (
           <PrintSection title="Checklist Pré-Operatória">
@@ -1222,11 +1734,13 @@ export function ProtocolPrint() {
         {nextAppointmentBlock}
         {summaryBlock}
 
-        {sel.internalNotes && protocol.postopNotes && (
+        {sel.internalNotes && internalNotesText && (
           <PrintSection title="Instruções / Notas Pós-Operatórias (Internas)">
-            <div className="text-sm leading-relaxed whitespace-pre-wrap font-serif">
-              {protocol.postopNotes}
-            </div>
+            <EditableText
+              value={internalNotesText}
+              className="text-sm leading-relaxed whitespace-pre-wrap font-serif"
+              {...editProps("internalNotes")}
+            />
           </PrintSection>
         )}
 
@@ -1253,21 +1767,11 @@ export function ProtocolPrint() {
           </div>
         )}
 
-        {/* Assinaturas */}
-        {isNota || isRelatorio ? (
-          <SurgeonSignature />
-        ) : (
-          <div className="mt-24 pt-8 border-t border-gray-300 flex justify-between px-12">
-            <div className="text-center w-48">
-              <div className="border-b border-black mb-2 h-16"></div>
-              <div className="text-xs uppercase font-bold text-gray-500">O Cirurgião</div>
-            </div>
-            <div className="text-center w-48">
-              <div className="border-b border-black mb-2 h-16"></div>
-              <div className="text-xs uppercase font-bold text-gray-500">O Anestesista</div>
-            </div>
-          </div>
-        )}
+        {/* Assinatura — o anestesista nunca surge aqui */}
+        <SurgeonSignature
+          representative={protocol.signatureRepresentative}
+          signatureUrl={signatureUrl}
+        />
 
         <ClinicFooter legal={isNota} />
 

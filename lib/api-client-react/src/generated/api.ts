@@ -54,6 +54,8 @@ import type {
   Template,
   TemplateInput,
   TemplateUpdate,
+  TranslateDocumentBody,
+  TranslateDocumentResult,
   UploadUrlRequest,
   UploadUrlResponse
 } from './api.schemas';
@@ -1951,6 +1953,78 @@ export const useSuggestDiagnosisAi = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getSuggestDiagnosisAiMutationOptions(options));
+    }
+
+export const getTranslateDocumentUrl = (id: number,) => {
+
+
+
+
+  return `/api/protocols/${id}/translate-document`
+}
+
+/**
+ * @summary Traduzir blocos de texto de um documento gerado (EN/ES) via IA — não altera dados clínicos
+ */
+export const translateDocument = async (id: number,
+    translateDocumentBody: TranslateDocumentBody, options?: RequestInit): Promise<TranslateDocumentResult> => {
+
+  return customFetch<TranslateDocumentResult>(getTranslateDocumentUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(translateDocumentBody)
+  }
+);}
+
+
+
+
+
+export const getTranslateDocumentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof translateDocument>>, TError,{id: number;data: BodyType<TranslateDocumentBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof translateDocument>>, TError,{id: number;data: BodyType<TranslateDocumentBody>}, TContext> => {
+
+const mutationKey = ['translateDocument'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof translateDocument>>, {id: number;data: BodyType<TranslateDocumentBody>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  translateDocument(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TranslateDocumentMutationResult = NonNullable<Awaited<ReturnType<typeof translateDocument>>>
+    export type TranslateDocumentMutationBody = BodyType<TranslateDocumentBody>
+    export type TranslateDocumentMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Traduzir blocos de texto de um documento gerado (EN/ES) via IA — não altera dados clínicos
+ */
+export const useTranslateDocument = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof translateDocument>>, TError,{id: number;data: BodyType<TranslateDocumentBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof translateDocument>>,
+        TError,
+        {id: number;data: BodyType<TranslateDocumentBody>},
+        TContext
+      > => {
+      return useMutation(getTranslateDocumentMutationOptions(options));
     }
 
 export const getReorderPlanningImagesUrl = (id: number,) => {
