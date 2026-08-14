@@ -1,0 +1,142 @@
+# Prompt Replit — Protocolo-TESTE (Fase 1)
+
+Conjunto de alterações e correções. Implementa de forma organizada, de preferência por fases (schema/campos → secções do formulário → IA → PDF/impressão → identidade visual), para evitar reescritas. Não alteres dados de protocolos existentes; migrações com valores por omissão seguros. Regenera hooks e schemas Zod após alterações ao OpenAPI. No fim, corre `pnpm run typecheck` e `pnpm run build`. Se algum ponto for ambíguo, pergunta antes de implementar.
+
+Manter tal como está: os 4 estados (draft, preop_complete, intraop_complete, finalized) com etiquetas em português, o bloqueio de protocolos finalizados com reabertura auditada, a geração automática da descrição operatória, o Construtor de Diagnóstico, a tradução de documentos (EN/ES) e a seleção de secções do PDF com os presets existentes.
+
+---
+
+## 1. Correção de bug — análise de IA
+
+O botão "Sugerir com IA (fotos iniciais)" devolve "Erro na análise de IA". As variáveis de ambiente estão definidas e os modelos (`gpt-5.6-luna`, `gpt-5.6-terra`) respondem em testes diretos, pelo que a falha ocorre dentro da chamada em `artifacts/api-server/src/routes/plan-ai.ts` (bloco `catch` final da rota `/protocols/:id/diagnosis-ai/suggest`). Causas prováveis: resposta truncada ou sem JSON válido (`extractJson` lança "Resposta da IA sem JSON"), ou payload demasiado grande (até 12 imagens em base64 numa só chamada, com `max_completion_tokens: 8192`).
+
+- Registar no log o erro completo do fornecedor (status, código, corpo) e a resposta bruta do modelo quando o parsing de JSON falha.
+- Propagar ao frontend mensagens distintas consoante a causa (erro do fornecedor / resposta sem JSON / resposta truncada), em vez da mensagem genérica.
+- Reduzir o risco de truncagem: limitar imagens por chamada (processar em lotes se necessário), reduzir resolução/peso das imagens enviadas, ajustar o limite de tokens de resposta.
+- Se o modelo suportar, forçar saída em JSON estruturado em vez de extração por texto.
+
+## 2. Guardar automaticamente
+
+Autosave silencioso: ao passar para a secção/passo seguinte, a informação é guardada automaticamente, sem interromper o utilizador e sem confirmação visível.
+
+## 3. Nova secção — Cirurgia Virtual (imagens)
+
+- Criar um **passo próprio**, entre a Checklist/Diagnóstico e o Plano Cirúrgico, para carregar fotos/printscreens da cirurgia virtual.
+- **A extração de medidas por IA passa a usar exclusivamente as imagens desta secção.** As fotografias clínicas iniciais deixam de alimentar a extração de medidas.
+- O **Construtor de Diagnóstico mantém-se inalterado** — continua a usar as fotografias clínicas iniciais.
+
+## 4. Plano Cirúrgico — imagem de referência
+
+No topo da secção do Plano Cirúrgico, mostrar a imagem da cirurgia virtual que originou as medidas, visível (e ampliável) enquanto se confirmam os valores e se revêem as propostas da IA.
+
+## 5. Formatos de imagem
+
+Aceitar **PNG, JPEG/JPG e HEIC**. Os HEIC devem ser **convertidos automaticamente para JPEG no upload**, de forma transparente, garantindo visualização na app e compatibilidade com a análise de IA.
+
+## 6. Renomear secção
+
+"Previsão Laboratorial" passa a **"Protocolo/Execução Cirúrgica"** em toda a app e nos documentos gerados.
+
+## 7. Protocolo/Execução Cirúrgica — reestruturação por osso
+
+Manter Mallampati (I–IV), Cuidados Especiais, Início da Cirurgia (Mandíbula/Maxila) e as verificações numeradas existentes (1, 2, 3, 4, 6, 7, 8, 9).
+
+Os **Complementos deixam de ser uma lista solta** e passam a estar organizados em secções, cada uma com opções pré-definidas mais um campo de notas:
+
+**Maxila**
+- Segmentação: número de partes (2 / 3 / 4) **e**, como escolha independente, tipo (com expansão / com contração) — qualquer combinação possível
+- Campo de notas
+
+**Mandíbula**
+- Prótese ATM
+- Plastia do rebordo mandibular: lado (D / E / bilateral) + descrição do que foi feito
+- Campo de notas
+
+**Mento**
+- Mentoplastia
+- Campo de notas
+
+**Nasal / Septoplastia**
+- Desvio do septo: lado (D / E)
+- Esporão vomeriano: lado (D / E)
+- Cornetos
+- Campo de notas
+
+**Implantes aloplásticos de contorno** (nova opção)
+- Região (malar / mandibular / mento / outra)
+- Lado (D / E / bilateral)
+- Material (titânio / outro)
+- Personalizado (custom-made): sim / não
+- Marca/referência e lote — mesma lógica de rastreabilidade dos materiais de osteossíntese
+- Campo de notas
+
+**Campo livre** para outros procedimentos não previstos.
+
+Ao escolher o Início da Cirurgia, abrir os campos correspondentes da maxila e da mandíbula para registar o que será feito em cada uma.
+
+## 8. Diagramas cirúrgicos — orientação das placas
+
+As placas retas estão fixas na horizontal. Permitir **alternar entre horizontal e vertical (90°)**, para poderem ser representadas, por exemplo, no pilar zigomático.
+
+## 9. Relato operatório — ordem do texto
+
+A menção à cirurgia virtual e às guias cirúrgicas deve aparecer **no fim do texto** do relato operatório.
+
+## 10. Frases Clínicas — organização
+
+Agrupar visualmente por tema, com secções/separadores navegáveis, mantendo categorias e subcategorias existentes.
+
+## 11. Identificação do doente — novos campos
+
+- **Entidade** (seguro, ADSE, etc.) — texto livre
+- **Número de beneficiário / apólice**
+
+## 12. Fotografia de identificação
+
+- Poder **desativá-la no PDF**
+- Poder **removê-la do protocolo**
+
+## 13. Seleção de fotografias no PDF
+
+No ecrã de geração do PDF, listar as fotografias do protocolo com checkboxes. **Nenhuma marcada por omissão** — só saem as escolhidas.
+
+## 14. Pré-visualização editável
+
+Na pré-visualização, antes de gerar o PDF, poder **alterar, apagar e acrescentar texto livremente**. **As edições ficam guardadas no protocolo** — se o documento for gerado novamente, as alterações mantêm-se.
+
+## 15. Assinatura
+
+- O **anestesista mantém-se na equipa cirúrgica**, mas **não aparece no bloco de assinatura**.
+- O relatório é **sempre assinado pelo cirurgião principal**.
+- Poder indicar excecionalmente que **outra pessoa assina em representação** (ex.: quem dá alta ao doente), no formato "p/ Dr. António Matos da Fonseca".
+- **Assinatura manuscrita**: desenhar no ecrã ou carregar imagem, reproduzida no PDF.
+- O bloco de assinatura mostra sempre:
+
+```
+Dr. António Matos da Fonseca
+Médico – Cirurgião Maxilo-Facial
+Cédula Profissional OM n.º 21892
+```
+
+## 16. Identidade visual e contactos
+
+**Por baixo do logótipo** (sidebar da app e cabeçalho dos PDFs) deve constar apenas:
+
+```
+Cirurgia Ortognática
+Dr. António Matos da Fonseca (Médico – Cirurgia Maxilo-Facial)
+```
+
+Remover quaisquer menções a Implantologia e Ortodontia nesse local.
+
+**Atualizar todos os contactos** (app e documentos) — a morada em uso está desatualizada:
+
+- Morada: Avenida José Gomes Ferreira, 15, Piso 4, Edifício Atlas IV, 1495-139 Algés – Lisboa
+- Telefones: +351 217 210 900 · +351 937 210 900
+- WhatsApp: +351 937 210 900
+- Site: www.clinicadaface.com
+- Email: clinica@clinicadaface.com
+
+Substituir todas as ocorrências da morada antiga ("Complexo Hospitalar das Torres de Lisboa, Rua Tomás da Fonseca, Torre F, Piso 1, 1600-209 Lisboa"), incluindo rodapés dos documentos e frases clínicas onde apareça.
+
+**Tipografia**: rever todo o lettering da aplicação e dos documentos para usar a mesma família tipográfica do site da Clínica da Face. Extrai a fonte diretamente do CSS de https://www.clinicadaface.com e aplica-a de forma consistente (app e PDFs), com fallbacks adequados. Preservar o resto da identidade visual: teal #2D6B79, cantos retos, sidebar escura.

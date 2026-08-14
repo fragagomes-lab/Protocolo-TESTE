@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600&family=Roboto:wght@300;400;500;700&family=Montserrat:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @plugin "@tailwindcss/typography";
@@ -112,9 +112,9 @@
   --input: 210 15% 85%;
   --ring: 189 47% 32%;
 
-  /* Identidade visual Clínica da Face: Roboto no corpo, Raleway/Montserrat nos títulos */
+  /* Identidade visual Clínica da Face: Roboto em todo o lettering (extraído do CSS de clinicadaface.com) */
   --app-font-sans: 'Roboto', Helvetica, Arial, sans-serif;
-  --app-font-heading: 'Raleway', 'Montserrat', sans-serif;
+  --app-font-heading: 'Roboto', Helvetica, Arial, sans-serif;
   --app-font-serif: Georgia, serif;
   --app-font-mono: Menlo, monospace;
   
@@ -208,7 +208,7 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
-  /* Identidade Clínica da Face: títulos em Raleway (300/400) com Montserrat de reserva */
+  /* Identidade Clínica da Face: títulos em Roboto, como no site clinicadaface.com */
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--app-font-heading);
   }
