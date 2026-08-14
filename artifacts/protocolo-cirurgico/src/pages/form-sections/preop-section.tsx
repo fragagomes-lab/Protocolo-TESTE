@@ -1,48 +1,22 @@
-import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Check, X, Minus } from "lucide-react";
-import { ChecklistItem, ChecklistItemStatus, PreopDiagnosis } from "@workspace/api-client-react";
+import { ChecklistItem, PreopDiagnosis } from "@workspace/api-client-react";
 
 interface PreopSectionProps {
-  checklist: ChecklistItem[];
-  updateChecklist: (checklist: ChecklistItem[]) => void;
+  // Mantidos por compatibilidade com o chamador — a checklist genérica foi
+  // substituída pela Checklist de Preparação (separador próprio).
+  checklist?: ChecklistItem[];
+  updateChecklist?: (checklist: ChecklistItem[]) => void;
   diagnosis: PreopDiagnosis;
   updateDiagnosis: (diagnosis: PreopDiagnosis) => void;
   isFinalized: boolean;
 }
 
-const DEFAULT_CHECKLIST = [
-  "Consentimento Informado",
-  "Avaliação Pré-Anestésica",
-  "Modelos / Goteiras Cirúrgicas",
-  "Planeamento Virtual (VSP)",
-  "Material Osteossíntese Específico"
-];
-
-export function PreopSection({ checklist, updateChecklist, diagnosis, updateDiagnosis, isFinalized }: PreopSectionProps) {
-  
-  // Initialize default checklist if empty (em efeito — nunca durante a renderização)
-  useEffect(() => {
-    if (checklist.length === 0 && !isFinalized) {
-      const defaultList = DEFAULT_CHECKLIST.map(item => ({ item, status: ChecklistItemStatus.missing }));
-      updateChecklist(defaultList);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [checklist.length, isFinalized]);
-
-  const handleChecklistStatus = (index: number, status: ChecklistItemStatus) => {
-    if (isFinalized) return;
-    const newList = [...checklist];
-    newList[index].status = status;
-    updateChecklist(newList);
-  };
-
+export function PreopSection({ diagnosis, updateDiagnosis, isFinalized }: PreopSectionProps) {
   const handleDiagChange = (field: keyof PreopDiagnosis, value: any) => {
     if (isFinalized) return;
     updateDiagnosis({ ...diagnosis, [field]: value });
@@ -50,52 +24,12 @@ export function PreopSection({ checklist, updateChecklist, diagnosis, updateDiag
 
   return (
     <div className="space-y-6">
-      <Card className="shadow-xs border-border/50">
-        <CardHeader>
-          <CardTitle className="uppercase tracking-widest text-sm text-primary">Checklist Pré-Operatória</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {checklist.map((item, index) => (
-              <div key={index} className="flex items-center justify-between p-3 rounded-sm border bg-muted/5">
-                <span className="font-medium text-sm">{item.item}</span>
-                <div className="flex bg-muted p-1 rounded-sm">
-                  <Button 
-                    type="button"
-                    variant={item.status === ChecklistItemStatus.ok ? "default" : "ghost"}
-                    size="sm"
-                    className={`px-3 py-1 h-8 rounded-sm text-xs uppercase tracking-wider ${item.status === ChecklistItemStatus.ok ? 'bg-teal-600 hover:bg-teal-700' : ''}`}
-                    onClick={() => handleChecklistStatus(index, ChecklistItemStatus.ok)}
-                    disabled={isFinalized}
-                  >
-                    <Check className="h-4 w-4 mr-1" /> OK
-                  </Button>
-                  <Button 
-                    type="button"
-                    variant={item.status === ChecklistItemStatus.missing ? "destructive" : "ghost"}
-                    size="sm"
-                    className="px-3 py-1 h-8 rounded-sm text-xs uppercase tracking-wider"
-                    onClick={() => handleChecklistStatus(index, ChecklistItemStatus.missing)}
-                    disabled={isFinalized}
-                  >
-                    <X className="h-4 w-4 mr-1" /> Falta
-                  </Button>
-                  <Button 
-                    type="button"
-                    variant={item.status === ChecklistItemStatus.na ? "secondary" : "ghost"}
-                    size="sm"
-                    className="px-3 py-1 h-8 rounded-sm text-xs uppercase tracking-wider"
-                    onClick={() => handleChecklistStatus(index, ChecklistItemStatus.na)}
-                    disabled={isFinalized}
-                  >
-                    <Minus className="h-4 w-4 mr-1" /> N/A
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {/* A checklist genérica foi substituída pela Checklist de Preparação em
+          blocos (separador "Preparação" do protocolo). Registos antigos são
+          preservados no bloco "Histórico" desse separador. */}
+      <div className="border border-border/50 bg-muted/20 rounded-sm p-4 text-sm text-muted-foreground">
+        A checklist pré-operatória passou para o separador <span className="font-semibold text-foreground">Preparação</span> (botão no topo do protocolo), organizada por blocos: Ortodontista, Documentação, Fotos Clínicas, Imagiologia e Cirurgia Virtual 3D.
+      </div>
 
       <Card className="shadow-xs border-border/50">
         <CardHeader>

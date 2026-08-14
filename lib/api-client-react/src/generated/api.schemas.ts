@@ -469,6 +469,17 @@ export const ProtocolStatus = {
 
 export type ProtocolDocumentEdits = { [key: string]: unknown };
 
+/**
+ * @nullable
+ */
+export type ProtocolOrthoAppliance = typeof ProtocolOrthoAppliance[keyof typeof ProtocolOrthoAppliance] | null;
+
+
+export const ProtocolOrthoAppliance = {
+  brk: 'brk',
+  aligners: 'aligners',
+} as const;
+
 export interface DiagramStroke {
   color?: string;
   width?: number;
@@ -663,6 +674,123 @@ export interface LabPrediction {
   checks?: LabPredictionCheck[];
 }
 
+export type PreparationPhase = typeof PreparationPhase[keyof typeof PreparationPhase];
+
+
+export const PreparationPhase = {
+  preparation: 'preparation',
+} as const;
+
+export type PreparationSegmentation = typeof PreparationSegmentation[keyof typeof PreparationSegmentation];
+
+
+export const PreparationSegmentation = {
+  yes: 'yes',
+  no: 'no',
+  undecided: 'undecided',
+} as const;
+
+export type PrepItemStatus = typeof PrepItemStatus[keyof typeof PrepItemStatus];
+
+
+export const PrepItemStatus = {
+  todo: 'todo',
+  done: 'done',
+  na: 'na',
+  na_auto: 'na_auto',
+} as const;
+
+export interface PrepItem {
+  key: string;
+  status: PrepItemStatus;
+  notes?: string;
+  detail?: string;
+}
+
+export type PreparationDecisionsOcclusion = typeof PreparationDecisionsOcclusion[keyof typeof PreparationDecisionsOcclusion];
+
+
+export const PreparationDecisionsOcclusion = {
+  odc: 'odc',
+  omc: 'omc',
+  undecided: 'undecided',
+} as const;
+
+export type PreparationDecisionsGuides = typeof PreparationDecisionsGuides[keyof typeof PreparationDecisionsGuides];
+
+
+export const PreparationDecisionsGuides = {
+  guides: 'guides',
+  splintless: 'splintless',
+  undecided: 'undecided',
+} as const;
+
+export type PreparationDecisionsPiggyback = typeof PreparationDecisionsPiggyback[keyof typeof PreparationDecisionsPiggyback];
+
+
+export const PreparationDecisionsPiggyback = {
+  yes: 'yes',
+  no: 'no',
+} as const;
+
+export type PreparationDecisionsPassiveAligners = typeof PreparationDecisionsPassiveAligners[keyof typeof PreparationDecisionsPassiveAligners];
+
+
+export const PreparationDecisionsPassiveAligners = {
+  yes: 'yes',
+  no: 'no',
+  to_fabricate: 'to_fabricate',
+} as const;
+
+export type PrepProductStatus = typeof PrepProductStatus[keyof typeof PrepProductStatus];
+
+
+export const PrepProductStatus = {
+  todo: 'todo',
+  in_production: 'in_production',
+  printed: 'printed',
+  verified: 'verified',
+  na_auto: 'na_auto',
+} as const;
+
+export interface PrepProduct {
+  key: string;
+  status: PrepProductStatus;
+  updatedAt?: string;
+}
+
+export interface PrepAlert {
+  key: string;
+  resolved: boolean;
+  resolvedAt?: string;
+}
+
+export type PreparationBlockNotes = {[key: string]: string};
+
+export type PreparationDecisions = {
+  occlusion?: PreparationDecisionsOcclusion;
+  guides?: PreparationDecisionsGuides;
+  piggyback?: PreparationDecisionsPiggyback;
+  passiveAligners?: PreparationDecisionsPassiveAligners;
+};
+
+export interface Preparation {
+  phase?: PreparationPhase;
+  preparationDate?: string;
+  dataCollector?: string;
+  segmentation?: PreparationSegmentation;
+  activationDeadline?: string;
+  activationDeadlineManual?: boolean;
+  lastActivationDone?: boolean;
+  orthodontistName?: string;
+  items?: PrepItem[];
+  blockNotes?: PreparationBlockNotes;
+  decisions?: PreparationDecisions;
+  products?: PrepProduct[];
+  alerts?: PrepAlert[];
+  legacyChecklist?: ChecklistItem[];
+}
+
 export interface PlanAiAnalysis { [key: string]: unknown }
 
 export interface ReopenEvent {
@@ -728,10 +856,45 @@ export interface Protocol {
   /** @nullable */
   postopRecommendations?: string | null;
   labPrediction?: LabPrediction;
+  /** @nullable */
+  orthoAppliance?: ProtocolOrthoAppliance;
+  preparation?: Preparation;
   planAiAnalysis?: PlanAiAnalysis;
   reopenHistory?: ReopenEvent[];
   createdAt: string;
   updatedAt: string;
+}
+
+export type PreparationPendencyType = typeof PreparationPendencyType[keyof typeof PreparationPendencyType];
+
+
+export const PreparationPendencyType = {
+  activation_deadline: 'activation_deadline',
+  conditional_alert: 'conditional_alert',
+  products_unverified: 'products_unverified',
+} as const;
+
+export type PreparationPendencySeverity = typeof PreparationPendencySeverity[keyof typeof PreparationPendencySeverity];
+
+
+export const PreparationPendencySeverity = {
+  warning: 'warning',
+  urgent: 'urgent',
+} as const;
+
+export interface PreparationPendency {
+  type: PreparationPendencyType;
+  message: string;
+  severity: PreparationPendencySeverity;
+}
+
+export interface PreparationPendingItem {
+  protocolId: number;
+  processNumber: string;
+  patientName: string;
+  /** @nullable */
+  surgeryDate?: string | null;
+  pendencies: PreparationPendency[];
 }
 
 export type ProtocolInputPatientGender = typeof ProtocolInputPatientGender[keyof typeof ProtocolInputPatientGender];
@@ -753,6 +916,14 @@ export const ProtocolInputStatus = {
 } as const;
 
 export type ProtocolInputDocumentEdits = { [key: string]: unknown };
+
+export type ProtocolInputOrthoAppliance = typeof ProtocolInputOrthoAppliance[keyof typeof ProtocolInputOrthoAppliance];
+
+
+export const ProtocolInputOrthoAppliance = {
+  brk: 'brk',
+  aligners: 'aligners',
+} as const;
 
 export interface ProtocolInput {
   processNumber: string;
@@ -791,6 +962,8 @@ export interface ProtocolInput {
   homeMedication?: string;
   postopRecommendations?: string;
   labPrediction?: LabPrediction;
+  orthoAppliance?: ProtocolInputOrthoAppliance;
+  preparation?: Preparation;
 }
 
 export type ProtocolUpdatePatientGender = typeof ProtocolUpdatePatientGender[keyof typeof ProtocolUpdatePatientGender];
@@ -812,6 +985,14 @@ export const ProtocolUpdateStatus = {
 } as const;
 
 export type ProtocolUpdateDocumentEdits = { [key: string]: unknown };
+
+export type ProtocolUpdateOrthoAppliance = typeof ProtocolUpdateOrthoAppliance[keyof typeof ProtocolUpdateOrthoAppliance];
+
+
+export const ProtocolUpdateOrthoAppliance = {
+  brk: 'brk',
+  aligners: 'aligners',
+} as const;
 
 export interface ProtocolUpdate {
   processNumber?: string;
@@ -850,6 +1031,8 @@ export interface ProtocolUpdate {
   homeMedication?: string;
   postopRecommendations?: string;
   labPrediction?: LabPrediction;
+  orthoAppliance?: ProtocolUpdateOrthoAppliance;
+  preparation?: Preparation;
   /** @nullable */
   reopenedBy?: string | null;
 }

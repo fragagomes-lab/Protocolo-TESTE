@@ -1,0 +1,133 @@
+# Prompt Replit — Protocolo-TESTE (Etapa B: Preparação e Percurso)
+
+Nova funcionalidade estruturante. Implementa por fases (schema → separador Preparação → lógica de percurso/prazos/alertas → Dashboard), sem alterar o que a Fase 1 implementou. Não alteres dados de protocolos existentes; migrações com valores por omissão seguros. Regenera hooks e schemas Zod após alterações ao OpenAPI. No fim, corre `pnpm run typecheck`. Se algo for ambíguo, pergunta antes de implementar.
+
+**Instrução de arquitetura importante:** estrutura o modelo de dados já a pensar numa futura organização do protocolo por fases temporais (Preparação → Cirurgia Virtual → Cirurgia → Pós-operatório), sem a implementar agora. O separador de Preparação criado nesta etapa deve poder tornar-se a primeira fase dessa linha temporal sem retrabalho.
+
+---
+
+## 1. Variáveis de percurso
+
+**Na criação do protocolo**, acrescentar a pergunta:
+- **Aparelho ortodôntico**: BRK (aparelho fixo) / Aligners (alinhadores) — obrigatório, editável depois.
+
+**No separador Preparação** (ver ponto 2), definir mais tarde:
+- **Segmentação**: sim / não / por decidir (predefinição: por decidir). Pode ser confirmada ou ajustada quando o planeamento a clarificar. Se o plano cirúrgico da maxila tiver segmentação preenchida, sugerir a sincronização (sem forçar).
+
+Estas duas variáveis determinam itens aplicáveis, prazos e alertas em toda a Preparação.
+
+## 2. Novo separador "Preparação"
+
+Criar uma área própria dentro do protocolo, **fora do formulário multi-step** — um separador "Preparação" acessível a qualquer momento a partir da página do protocolo (sem obrigar a passar por ele no fluxo de preenchimento).
+
+Campos de topo:
+- **Data da preparação**
+- **Responsável pela recolha de dados** (texto)
+- **Aparelho** (vindo da criação, visível e editável aqui)
+- **Segmentação** (sim/não/por decidir)
+- **Data-limite da última ativação** (ver ponto 4)
+
+## 3. Checklist de preparação real (substitui a checklist genérica)
+
+A checklist genérica atual (ECG, jejum, consentimento…) é substituída por esta estrutura em blocos, no separador Preparação. Migrar itens antigos preenchidos para um bloco "Histórico (checklist anterior)" apenas em protocolos que já os tenham — protocolos novos usam só a nova estrutura.
+
+Cada item tem estado (por fazer / feito / N/A) e notas. **Regra de visibilidade: mostrar sempre todos os itens; os não aplicáveis ao percurso escolhido ficam esbatidos e marcados automaticamente como "N/A (percurso)", reversível manualmente.**
+
+**Bloco Ortodontista**
+- Nome do ortodontista (texto)
+- Procedimentos: Colocar brackets *(só BRK)* · Cimentar bandas *(só BRK)* · Aparelho auxiliar — tipo (texto) · Kobayashis / ganchos
+- Notas
+
+**Bloco Documentação**
+- Questionário médico
+- Análises – ECG – Tórax (com a nota visível: "tórax e ECG nem sempre necessários")
+- **Instruções pré e pós-operatórias entregues ao doente** — ver ponto 7 (QR/link da app de instruções)
+- Medicação
+- Entregar requisição da TAC CF / instruções da TAC / cera
+- Consentimento informado hospitalar e da Clínica da Face
+- Relatório clínico
+
+**Bloco Fotos Clínicas**
+- Faciais / dentárias de rotina
+- Close up — relação lábio-dente em repouso e sorriso
+- Axiais (assimetrias)
+- Frente com abre-bocas
+- Faciais para calibração (frente repouso + sorriso; perfil)
+
+**Bloco Imagiologia**
+- TAC craniofacial completa com protocolo
+- Ortopantomografia (nota: restantes radiografias efetuam-se a partir da TAC)
+- Cera de mordida em relação cêntrica para efetuar a TAC ou CBCT
+
+**Bloco Cirurgia Virtual 3D**
+- Scanning intraoral das arcadas c/ periferia (10–15 mm) do palato
+- Scanning intraoral das arcadas c/ todo o palato
+- Modelo superior / inferior — identificados
+- Preparação de arcadas limpas
+- TAC CF limpa
+
+**Bloco Decisões Técnicas** (campos de escolha, não checkboxes; não aplicáveis esbatidos)
+- Oclusão: ODC (digitalmente construída) / OMC (manualmente construída — piggyback) / por decidir
+- Guias cirúrgicas / Splintless / por decidir
+- Piggyback *(só BRK + OMC)*: sim / não
+- Alinhadores passivos *(só Aligners)*: sim / não / a fabricar
+
+## 4. Prazos e data-limite da última ativação
+
+- Calcular automaticamente a **data-limite da última ativação** a partir da data da cirurgia: **3 semanas antes (BRK)** ou **2 semanas antes (Aligners)**.
+- O prazo é **ajustável caso a caso** (campo editável, com a predefinição calculada e indicação de que foi alterado manualmente).
+- Mostrar a data-limite em destaque no separador Preparação.
+- Se a data atual ultrapassar o limite sem o item correspondente estar concluído, mostrar **aviso destacado no separador Preparação e no Dashboard**.
+
+## 5. Alertas condicionais do percurso
+
+Dois itens condicionais da checklist, que só ficam ativos na combinação correspondente e aparecem como **pendência destacada** (no separador e no Dashboard) enquanto não forem marcados como resolvidos:
+
+- **BRK + Segmentação = sim** → item "URGENTE — Instalar arco contínuo na arcada segmentada"
+- **Aligners** → item "Confirmar planeamento do ClinCheck pós-operatório (risco de atraso)"
+
+## 6. Produtos a fabricar (com estados)
+
+Quadro próprio no separador Preparação, separado da checklist. Cada produto tem estado: **A fazer → Em produção → Impresso → Verificado**, com data da última mudança.
+
+- Modelo físico impresso
+- Alinhador de transição *(só Aligners + Segmentação = sim)*
+- Placa de contenção palatina
+- Guias cirúrgicas *(esbatido se a decisão técnica for Splintless)*
+
+Os não aplicáveis ao percurso seguem a mesma lógica do esbatido/N/A. O Dashboard sinaliza produtos não Verificados quando a cirurgia está próxima (menos de 7 dias).
+
+## 7. Ligação à app de Instruções Operatórias
+
+O item "Instruções pré e pós-operatórias entregues ao doente" inclui:
+- Um botão/atalho que gera e mostra um **QR code e link** para https://oral-care-instructions-clinica-da-face.replit.app — para mostrar no ecrã ao doente ou imprimir.
+- O QR/link também disponível como elemento opcional no PDF (secção selecionável "Instruções ao doente").
+- Se o URL da app de instruções aceitar parâmetros de query, permitir configurar o link com o tipo de cirurgia; caso contrário, usar o link simples. **Não alterar a app de instruções** — qualquer personalização por doente fica para uma fase futura.
+
+## 8. Dashboard
+
+Acrescentar ao Dashboard uma zona de **pendências de preparação**, listando por protocolo (apenas estados não finalizados):
+- Última ativação em risco/ultrapassada
+- Alertas condicionais por resolver (ponto 5)
+- Produtos não verificados com cirurgia a menos de 7 dias
+
+Cada pendência liga diretamente ao separador Preparação do protocolo em causa.
+
+## 9. Impressão
+
+O separador Preparação deve ser imprimível como secção selecionável do PDF ("Checklist de Preparação"), reproduzindo a estrutura em blocos, os estados, as decisões técnicas, os produtos e as datas — no espírito do documento em papel "ORTOGNÁTICA — CHECKLIST PREPARAÇÃO DA CIRURGIA".
+
+## 10. Tradução integral dos documentos (EN/ES) — CORREÇÃO DE BUG + requisito transversal
+
+**Bug atual a corrigir:** quando se pede o documento em inglês, apenas algumas partes do texto são traduzidas — o resto sai em português. Este comportamento é inaceitável num documento clínico e tem de ser corrigido: quando um documento é gerado em inglês ou espanhol, **todo o conteúdo tem de sair nesse idioma, sem exceções**.
+
+**O inglês é sempre Inglês Britânico (British English)** — ortografia e terminologia (ex.: anaesthesia, haemorrhage, orthopantomogram, theatre, -ise). Incluir esta instrução explícita no prompt de tradução da IA e usar grafia britânica no dicionário de etiquetas.
+
+Requisitos:
+
+- **Etiquetas fixas do documento**: títulos de secções, nomes de campos (Doente, Hospital, Data da Cirurgia…), cabeçalhos de tabelas, estados (Por fazer/Feito/N/A, A fazer/Em produção/Impresso/Verificado), legendas de fotos e a menção legal do rodapé. Estas etiquetas devem existir como traduções fixas na app (dicionário PT/EN-GB/ES), não passar pela IA.
+- **Conteúdo clínico dinâmico**: diagnóstico, relato operatório, recomendações, medicação, notas, frases clínicas inseridas — traduzido pela rota `/translate-document`, que deve ser corrigida para cobrir **todos os blocos do documento** (auditar quais os blocos que hoje ficam de fora e incluí-los), incluindo o texto de qualquer secção nova desta etapa (Checklist de Preparação, decisões técnicas, alertas) e a **descrição operatória gerada automaticamente server-side**.
+- **Verificação de cobertura obrigatória**: gerar um documento de teste em EN com todas as secções selecionadas e confirmar, de ponta a ponta, que nenhuma string portuguesa aparece — títulos, estados, legendas, textos gerados, rodapés. Corrigir tudo o que escapar antes de dar por concluído.
+- As edições manuais da pré-visualização continuam guardadas por documento/idioma/bloco — as versões EN/ES editadas não são substituídas por nova tradução automática sem confirmação.
+
+Exceções que se mantêm em português independentemente do idioma: nomes próprios, moradas e contactos da clínica, e o nome do cirurgião no bloco de assinatura ("Dr. António Matos da Fonseca"); a designação profissional aparece traduzida ("Oral and Maxillofacial Surgeon" / "Cirujano Oral y Maxilofacial").

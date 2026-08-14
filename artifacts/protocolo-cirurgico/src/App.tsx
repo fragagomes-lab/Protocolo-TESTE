@@ -8,6 +8,7 @@ import { Layout } from '@/components/layout';
 import { Dashboard } from '@/pages/dashboard';
 import { ProtocolList } from '@/pages/protocol-list';
 import { ProtocolForm } from '@/pages/protocol-form';
+import { ProtocolPreparation } from '@/pages/protocol-preparation';
 import { ProtocolPrint } from '@/pages/protocol-print';
 import { TemplatesList } from '@/pages/templates';
 import { PhrasesList } from '@/pages/phrases';
@@ -26,6 +27,7 @@ function Router() {
             <Route path="/" component={Dashboard} />
             <Route path="/protocols" component={ProtocolList} />
             <Route path="/protocols/new" component={ProtocolForm} />
+            <Route path="/protocols/:id/preparation" component={ProtocolPreparation} />
             <Route path="/protocols/:id" component={ProtocolForm} />
             <Route path="/templates" component={TemplatesList} />
             <Route path="/phrases" component={PhrasesList} />

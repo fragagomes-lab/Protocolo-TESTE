@@ -52,6 +52,14 @@ export const protocolsTable = pgTable("protocols", {
   postopRecommendations: text("postop_recommendations").default(""),
   // "Previsão Laboratorial" — folha estruturada pré-cirúrgica
   labPrediction: jsonb("lab_prediction"),
+  // Variável de percurso: aparelho ortodôntico (brk | aligners). Nullable para
+  // protocolos antigos; obrigatório na criação de novos protocolos (validação na app).
+  orthoAppliance: text("ortho_appliance"),
+  // Fase de "Preparação" — estruturada como a primeira fase de uma futura linha
+  // temporal (Preparação → Cirurgia Virtual → Cirurgia → Pós-operatório).
+  // Contém checklist por blocos, decisões técnicas, produtos a fabricar,
+  // data-limite da última ativação e alertas condicionais do percurso.
+  preparation: jsonb("preparation"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

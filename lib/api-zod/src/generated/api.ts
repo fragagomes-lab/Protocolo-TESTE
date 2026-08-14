@@ -340,6 +340,45 @@ export const CreateProtocolBody = zod.object({
   "valueMm": zod.number().nullish(),
   "note": zod.string().optional()
 })).optional()
+}).optional(),
+  "orthoAppliance": zod.enum(['brk', 'aligners']).optional(),
+  "preparation": zod.object({
+  "phase": zod.enum(['preparation']).optional(),
+  "preparationDate": zod.string().optional(),
+  "dataCollector": zod.string().optional(),
+  "segmentation": zod.enum(['yes', 'no', 'undecided']).optional(),
+  "activationDeadline": zod.string().optional(),
+  "activationDeadlineManual": zod.boolean().optional(),
+  "lastActivationDone": zod.boolean().optional(),
+  "orthodontistName": zod.string().optional(),
+  "items": zod.array(zod.object({
+  "key": zod.string(),
+  "status": zod.enum(['todo', 'done', 'na', 'na_auto']),
+  "notes": zod.string().optional(),
+  "detail": zod.string().optional()
+})).optional(),
+  "blockNotes": zod.record(zod.string(), zod.string()).optional(),
+  "decisions": zod.object({
+  "occlusion": zod.enum(['odc', 'omc', 'undecided']).optional(),
+  "guides": zod.enum(['guides', 'splintless', 'undecided']).optional(),
+  "piggyback": zod.enum(['yes', 'no']).optional(),
+  "passiveAligners": zod.enum(['yes', 'no', 'to_fabricate']).optional()
+}).optional(),
+  "products": zod.array(zod.object({
+  "key": zod.string(),
+  "status": zod.enum(['todo', 'in_production', 'printed', 'verified', 'na_auto']),
+  "updatedAt": zod.string().optional()
+})).optional(),
+  "alerts": zod.array(zod.object({
+  "key": zod.string(),
+  "resolved": zod.boolean(),
+  "resolvedAt": zod.string().optional()
+})).optional(),
+  "legacyChecklist": zod.array(zod.object({
+  "item": zod.string(),
+  "status": zod.enum(['ok', 'missing', 'na']),
+  "notes": zod.string().optional()
+})).optional()
 }).optional()
 })
 
@@ -643,6 +682,45 @@ export const CreateProtocolResponse = zod.object({
   "note": zod.string().optional()
 })).optional()
 }).optional(),
+  "orthoAppliance": zod.union([zod.literal('brk'),zod.literal('aligners'),zod.literal(null)]).nullish(),
+  "preparation": zod.object({
+  "phase": zod.enum(['preparation']).optional(),
+  "preparationDate": zod.string().optional(),
+  "dataCollector": zod.string().optional(),
+  "segmentation": zod.enum(['yes', 'no', 'undecided']).optional(),
+  "activationDeadline": zod.string().optional(),
+  "activationDeadlineManual": zod.boolean().optional(),
+  "lastActivationDone": zod.boolean().optional(),
+  "orthodontistName": zod.string().optional(),
+  "items": zod.array(zod.object({
+  "key": zod.string(),
+  "status": zod.enum(['todo', 'done', 'na', 'na_auto']),
+  "notes": zod.string().optional(),
+  "detail": zod.string().optional()
+})).optional(),
+  "blockNotes": zod.record(zod.string(), zod.string()).optional(),
+  "decisions": zod.object({
+  "occlusion": zod.enum(['odc', 'omc', 'undecided']).optional(),
+  "guides": zod.enum(['guides', 'splintless', 'undecided']).optional(),
+  "piggyback": zod.enum(['yes', 'no']).optional(),
+  "passiveAligners": zod.enum(['yes', 'no', 'to_fabricate']).optional()
+}).optional(),
+  "products": zod.array(zod.object({
+  "key": zod.string(),
+  "status": zod.enum(['todo', 'in_production', 'printed', 'verified', 'na_auto']),
+  "updatedAt": zod.string().optional()
+})).optional(),
+  "alerts": zod.array(zod.object({
+  "key": zod.string(),
+  "resolved": zod.boolean(),
+  "resolvedAt": zod.string().optional()
+})).optional(),
+  "legacyChecklist": zod.array(zod.object({
+  "item": zod.string(),
+  "status": zod.enum(['ok', 'missing', 'na']),
+  "notes": zod.string().optional()
+})).optional()
+}).optional(),
   "planAiAnalysis": zod.record(zod.string(), zod.unknown()).optional(),
   "reopenHistory": zod.array(zod.object({
   "reopenedAt": zod.string(),
@@ -688,6 +766,23 @@ export const GetRecentProtocolsResponseItem = zod.object({
   "updatedAt": zod.string()
 })
 export const GetRecentProtocolsResponse = zod.array(GetRecentProtocolsResponseItem)
+
+
+/**
+ * @summary Pendências de preparação para o Dashboard (protocolos não finalizados)
+ */
+export const GetPreparationPendingResponseItem = zod.object({
+  "protocolId": zod.number(),
+  "processNumber": zod.string(),
+  "patientName": zod.string(),
+  "surgeryDate": zod.string().nullish(),
+  "pendencies": zod.array(zod.object({
+  "type": zod.enum(['activation_deadline', 'conditional_alert', 'products_unverified']),
+  "message": zod.string(),
+  "severity": zod.enum(['warning', 'urgent'])
+}))
+})
+export const GetPreparationPendingResponse = zod.array(GetPreparationPendingResponseItem)
 
 
 /**
@@ -995,6 +1090,45 @@ export const GetProtocolResponse = zod.object({
   "direction": zod.string().optional(),
   "valueMm": zod.number().nullish(),
   "note": zod.string().optional()
+})).optional()
+}).optional(),
+  "orthoAppliance": zod.union([zod.literal('brk'),zod.literal('aligners'),zod.literal(null)]).nullish(),
+  "preparation": zod.object({
+  "phase": zod.enum(['preparation']).optional(),
+  "preparationDate": zod.string().optional(),
+  "dataCollector": zod.string().optional(),
+  "segmentation": zod.enum(['yes', 'no', 'undecided']).optional(),
+  "activationDeadline": zod.string().optional(),
+  "activationDeadlineManual": zod.boolean().optional(),
+  "lastActivationDone": zod.boolean().optional(),
+  "orthodontistName": zod.string().optional(),
+  "items": zod.array(zod.object({
+  "key": zod.string(),
+  "status": zod.enum(['todo', 'done', 'na', 'na_auto']),
+  "notes": zod.string().optional(),
+  "detail": zod.string().optional()
+})).optional(),
+  "blockNotes": zod.record(zod.string(), zod.string()).optional(),
+  "decisions": zod.object({
+  "occlusion": zod.enum(['odc', 'omc', 'undecided']).optional(),
+  "guides": zod.enum(['guides', 'splintless', 'undecided']).optional(),
+  "piggyback": zod.enum(['yes', 'no']).optional(),
+  "passiveAligners": zod.enum(['yes', 'no', 'to_fabricate']).optional()
+}).optional(),
+  "products": zod.array(zod.object({
+  "key": zod.string(),
+  "status": zod.enum(['todo', 'in_production', 'printed', 'verified', 'na_auto']),
+  "updatedAt": zod.string().optional()
+})).optional(),
+  "alerts": zod.array(zod.object({
+  "key": zod.string(),
+  "resolved": zod.boolean(),
+  "resolvedAt": zod.string().optional()
+})).optional(),
+  "legacyChecklist": zod.array(zod.object({
+  "item": zod.string(),
+  "status": zod.enum(['ok', 'missing', 'na']),
+  "notes": zod.string().optional()
 })).optional()
 }).optional(),
   "planAiAnalysis": zod.record(zod.string(), zod.unknown()).optional(),
@@ -1313,6 +1447,45 @@ export const UpdateProtocolBody = zod.object({
   "note": zod.string().optional()
 })).optional()
 }).optional(),
+  "orthoAppliance": zod.enum(['brk', 'aligners']).optional(),
+  "preparation": zod.object({
+  "phase": zod.enum(['preparation']).optional(),
+  "preparationDate": zod.string().optional(),
+  "dataCollector": zod.string().optional(),
+  "segmentation": zod.enum(['yes', 'no', 'undecided']).optional(),
+  "activationDeadline": zod.string().optional(),
+  "activationDeadlineManual": zod.boolean().optional(),
+  "lastActivationDone": zod.boolean().optional(),
+  "orthodontistName": zod.string().optional(),
+  "items": zod.array(zod.object({
+  "key": zod.string(),
+  "status": zod.enum(['todo', 'done', 'na', 'na_auto']),
+  "notes": zod.string().optional(),
+  "detail": zod.string().optional()
+})).optional(),
+  "blockNotes": zod.record(zod.string(), zod.string()).optional(),
+  "decisions": zod.object({
+  "occlusion": zod.enum(['odc', 'omc', 'undecided']).optional(),
+  "guides": zod.enum(['guides', 'splintless', 'undecided']).optional(),
+  "piggyback": zod.enum(['yes', 'no']).optional(),
+  "passiveAligners": zod.enum(['yes', 'no', 'to_fabricate']).optional()
+}).optional(),
+  "products": zod.array(zod.object({
+  "key": zod.string(),
+  "status": zod.enum(['todo', 'in_production', 'printed', 'verified', 'na_auto']),
+  "updatedAt": zod.string().optional()
+})).optional(),
+  "alerts": zod.array(zod.object({
+  "key": zod.string(),
+  "resolved": zod.boolean(),
+  "resolvedAt": zod.string().optional()
+})).optional(),
+  "legacyChecklist": zod.array(zod.object({
+  "item": zod.string(),
+  "status": zod.enum(['ok', 'missing', 'na']),
+  "notes": zod.string().optional()
+})).optional()
+}).optional(),
   "reopenedBy": zod.string().nullish()
 })
 
@@ -1614,6 +1787,45 @@ export const UpdateProtocolResponse = zod.object({
   "direction": zod.string().optional(),
   "valueMm": zod.number().nullish(),
   "note": zod.string().optional()
+})).optional()
+}).optional(),
+  "orthoAppliance": zod.union([zod.literal('brk'),zod.literal('aligners'),zod.literal(null)]).nullish(),
+  "preparation": zod.object({
+  "phase": zod.enum(['preparation']).optional(),
+  "preparationDate": zod.string().optional(),
+  "dataCollector": zod.string().optional(),
+  "segmentation": zod.enum(['yes', 'no', 'undecided']).optional(),
+  "activationDeadline": zod.string().optional(),
+  "activationDeadlineManual": zod.boolean().optional(),
+  "lastActivationDone": zod.boolean().optional(),
+  "orthodontistName": zod.string().optional(),
+  "items": zod.array(zod.object({
+  "key": zod.string(),
+  "status": zod.enum(['todo', 'done', 'na', 'na_auto']),
+  "notes": zod.string().optional(),
+  "detail": zod.string().optional()
+})).optional(),
+  "blockNotes": zod.record(zod.string(), zod.string()).optional(),
+  "decisions": zod.object({
+  "occlusion": zod.enum(['odc', 'omc', 'undecided']).optional(),
+  "guides": zod.enum(['guides', 'splintless', 'undecided']).optional(),
+  "piggyback": zod.enum(['yes', 'no']).optional(),
+  "passiveAligners": zod.enum(['yes', 'no', 'to_fabricate']).optional()
+}).optional(),
+  "products": zod.array(zod.object({
+  "key": zod.string(),
+  "status": zod.enum(['todo', 'in_production', 'printed', 'verified', 'na_auto']),
+  "updatedAt": zod.string().optional()
+})).optional(),
+  "alerts": zod.array(zod.object({
+  "key": zod.string(),
+  "resolved": zod.boolean(),
+  "resolvedAt": zod.string().optional()
+})).optional(),
+  "legacyChecklist": zod.array(zod.object({
+  "item": zod.string(),
+  "status": zod.enum(['ok', 'missing', 'na']),
+  "notes": zod.string().optional()
 })).optional()
 }).optional(),
   "planAiAnalysis": zod.record(zod.string(), zod.unknown()).optional(),
@@ -1941,6 +2153,45 @@ export const DuplicateProtocolResponse = zod.object({
   "direction": zod.string().optional(),
   "valueMm": zod.number().nullish(),
   "note": zod.string().optional()
+})).optional()
+}).optional(),
+  "orthoAppliance": zod.union([zod.literal('brk'),zod.literal('aligners'),zod.literal(null)]).nullish(),
+  "preparation": zod.object({
+  "phase": zod.enum(['preparation']).optional(),
+  "preparationDate": zod.string().optional(),
+  "dataCollector": zod.string().optional(),
+  "segmentation": zod.enum(['yes', 'no', 'undecided']).optional(),
+  "activationDeadline": zod.string().optional(),
+  "activationDeadlineManual": zod.boolean().optional(),
+  "lastActivationDone": zod.boolean().optional(),
+  "orthodontistName": zod.string().optional(),
+  "items": zod.array(zod.object({
+  "key": zod.string(),
+  "status": zod.enum(['todo', 'done', 'na', 'na_auto']),
+  "notes": zod.string().optional(),
+  "detail": zod.string().optional()
+})).optional(),
+  "blockNotes": zod.record(zod.string(), zod.string()).optional(),
+  "decisions": zod.object({
+  "occlusion": zod.enum(['odc', 'omc', 'undecided']).optional(),
+  "guides": zod.enum(['guides', 'splintless', 'undecided']).optional(),
+  "piggyback": zod.enum(['yes', 'no']).optional(),
+  "passiveAligners": zod.enum(['yes', 'no', 'to_fabricate']).optional()
+}).optional(),
+  "products": zod.array(zod.object({
+  "key": zod.string(),
+  "status": zod.enum(['todo', 'in_production', 'printed', 'verified', 'na_auto']),
+  "updatedAt": zod.string().optional()
+})).optional(),
+  "alerts": zod.array(zod.object({
+  "key": zod.string(),
+  "resolved": zod.boolean(),
+  "resolvedAt": zod.string().optional()
+})).optional(),
+  "legacyChecklist": zod.array(zod.object({
+  "item": zod.string(),
+  "status": zod.enum(['ok', 'missing', 'na']),
+  "notes": zod.string().optional()
 })).optional()
 }).optional(),
   "planAiAnalysis": zod.record(zod.string(), zod.unknown()).optional(),

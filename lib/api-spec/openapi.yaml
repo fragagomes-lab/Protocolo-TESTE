@@ -111,6 +111,21 @@ paths:
                 items:
                   $ref: "#/components/schemas/ProtocolSummary"
 
+  /protocols/preparation-pending:
+    get:
+      operationId: getPreparationPending
+      tags: [protocols]
+      summary: Pendências de preparação para o Dashboard (protocolos não finalizados)
+      responses:
+        "200":
+          description: Protocolos com pendências de preparação
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PreparationPendingItem"
+
   /protocols/{id}:
     get:
       operationId: getProtocol
@@ -1366,6 +1381,11 @@ components:
         postopRecommendations: { type: ["string", "null"] }
         labPrediction:
           $ref: "#/components/schemas/LabPrediction"
+        orthoAppliance:
+          type: ["string", "null"]
+          enum: [brk, aligners, null]
+        preparation:
+          $ref: "#/components/schemas/Preparation"
         planAiAnalysis:
           $ref: "#/components/schemas/PlanAiAnalysis"
         reopenHistory:
@@ -1374,6 +1394,121 @@ components:
             $ref: "#/components/schemas/ReopenEvent"
         createdAt: { type: string }
         updatedAt: { type: string }
+
+    # ── Fase de Preparação ─────────────────────────────────────────────────
+    # Estruturada como a primeira fase de uma futura linha temporal
+    # (Preparação → Cirurgia Virtual → Cirurgia → Pós-operatório) — o campo
+    # `phase` ancora essa evolução sem retrabalho.
+    PrepItem:
+      type: object
+      required: [key, status]
+      properties:
+        key: { type: string }
+        # todo/done/na definidos pelo utilizador; na_auto = marcado
+        # automaticamente como não aplicável ao percurso (reversível).
+        status:
+          type: string
+          enum: [todo, done, na, na_auto]
+        notes: { type: string }
+        # Detalhe livre associado ao item (ex.: tipo de aparelho auxiliar)
+        detail: { type: string }
+
+    PrepProduct:
+      type: object
+      required: [key, status]
+      properties:
+        key: { type: string }
+        status:
+          type: string
+          enum: [todo, in_production, printed, verified, na_auto]
+        updatedAt: { type: string }
+
+    PrepAlert:
+      type: object
+      required: [key, resolved]
+      properties:
+        key: { type: string }
+        resolved: { type: boolean }
+        resolvedAt: { type: string }
+
+    Preparation:
+      type: object
+      properties:
+        phase:
+          type: string
+          enum: [preparation]
+        preparationDate: { type: string }
+        dataCollector: { type: string }
+        segmentation:
+          type: string
+          enum: [yes, no, undecided]
+        # Data-limite da última ativação (ISO). Se ausente, é calculada a
+        # partir da data da cirurgia (BRK: -3 semanas; Aligners: -2 semanas).
+        activationDeadline: { type: string }
+        activationDeadlineManual: { type: boolean }
+        # Última ativação concluída (desliga o aviso de prazo)
+        lastActivationDone: { type: boolean }
+        orthodontistName: { type: string }
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PrepItem"
+        blockNotes:
+          type: object
+          additionalProperties: { type: string }
+        decisions:
+          type: object
+          properties:
+            occlusion:
+              type: string
+              enum: [odc, omc, undecided]
+            guides:
+              type: string
+              enum: [guides, splintless, undecided]
+            piggyback:
+              type: string
+              enum: [yes, no]
+            passiveAligners:
+              type: string
+              enum: [yes, no, to_fabricate]
+        products:
+          type: array
+          items:
+            $ref: "#/components/schemas/PrepProduct"
+        alerts:
+          type: array
+          items:
+            $ref: "#/components/schemas/PrepAlert"
+        # Itens da antiga checklist genérica migrados para "Histórico"
+        legacyChecklist:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChecklistItem"
+
+    PreparationPendency:
+      type: object
+      required: [type, message, severity]
+      properties:
+        type:
+          type: string
+          enum: [activation_deadline, conditional_alert, products_unverified]
+        message: { type: string }
+        severity:
+          type: string
+          enum: [warning, urgent]
+
+    PreparationPendingItem:
+      type: object
+      required: [protocolId, processNumber, patientName, pendencies]
+      properties:
+        protocolId: { type: integer }
+        processNumber: { type: string }
+        patientName: { type: string }
+        surgeryDate: { type: ["string", "null"] }
+        pendencies:
+          type: array
+          items:
+            $ref: "#/components/schemas/PreparationPendency"
 
     ReopenEvent:
       type: object
@@ -1442,6 +1577,11 @@ components:
         postopRecommendations: { type: string }
         labPrediction:
           $ref: "#/components/schemas/LabPrediction"
+        orthoAppliance:
+          type: string
+          enum: [brk, aligners]
+        preparation:
+          $ref: "#/components/schemas/Preparation"
 
     ProtocolUpdate:
       type: object
@@ -1502,6 +1642,11 @@ components:
         postopRecommendations: { type: string }
         labPrediction:
           $ref: "#/components/schemas/LabPrediction"
+        orthoAppliance:
+          type: string
+          enum: [brk, aligners]
+        preparation:
+          $ref: "#/components/schemas/Preparation"
         # Only honored on the un-finalize transition: names the clinician who
         # reopened a finalized report. Ignored on all other updates.
         reopenedBy: { type: ["string", "null"] }

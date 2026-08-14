@@ -22,6 +22,21 @@ import { SurgicalDiagramStatic } from "@/components/surgical-diagram";
 import { DIAGRAMS } from "@/components/surgical-diagrams/diagrams";
 import { SignatureBlockEditor } from "@/components/signature-block";
 import { resolveContentType } from "@/lib/upload-utils";
+import { QRCodeSVG } from "qrcode.react";
+import {
+  PREP_BLOCKS,
+  PREP_PRODUCTS,
+  APPLIANCE_LABELS,
+  SEGMENTATION_LABELS,
+  INSTRUCTIONS_APP_URL,
+  buildPrepContext,
+  effectiveItemStatus,
+  effectiveProductStatus,
+  computeActivationDeadline,
+  prepI18n,
+  type Appliance,
+  type Segmentation,
+} from "@/lib/preparation";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -91,6 +106,242 @@ const I18N: Record<string, Record<DocLang, string>> = {
   "sec.homeMedication": { pt: "Medicação para Domicílio", en: "Home Medication", es: "Medicación para Domicilio" },
   "sec.nextAppointment": { pt: "Próxima Consulta", en: "Next Appointment", es: "Próxima Consulta" },
   "sec.labPrediction": { pt: "Protocolo/Execução Cirúrgica", en: "Surgical Protocol / Execution", es: "Protocolo/Ejecución Quirúrgica" },
+  "sec.prepChecklist": { pt: "Checklist de Preparação", en: "Preparation Checklist", es: "Lista de Preparación" },
+  "sec.patientInstructions": { pt: "Instruções ao Doente", en: "Patient Instructions", es: "Instrucciones al Paciente" },
+  "prep.appliance": { pt: "Aparelho ortodôntico", en: "Orthodontic appliance", es: "Aparato de ortodoncia" },
+  "prep.segmentation": { pt: "Segmentação", en: "Segmentation", es: "Segmentación" },
+  "prep.deadline": { pt: "Data-limite da última ativação", en: "Deadline for final activation", es: "Fecha límite de la última activación" },
+  "prep.products": { pt: "Produtos a fabricar", en: "Products to fabricate", es: "Productos a fabricar" },
+  "prep.instructionsIntro": {
+    pt: "Instruções pré e pós-operatórias disponíveis online — aceda através do código QR ou do link:",
+    en: "Pre- and post-operative instructions available online — access via the QR code or the link:",
+    es: "Instrucciones pre y postoperatorias disponibles en línea — acceda mediante el código QR o el enlace:",
+  },
+  "prep.status.todo": { pt: "Por fazer", en: "To do", es: "Pendiente" },
+  "prep.status.done": { pt: "Feito", en: "Done", es: "Hecho" },
+  "prep.status.na": { pt: "N/A", en: "N/A", es: "N/A" },
+  "prep.status.na_auto": { pt: "N/A (percurso)", en: "N/A (pathway)", es: "N/A (vía clínica)" },
+  "prep.pstatus.todo": { pt: "A fazer", en: "To do", es: "Pendiente" },
+  "prep.pstatus.in_production": { pt: "Em produção", en: "In production", es: "En producción" },
+  "prep.pstatus.printed": { pt: "Impresso", en: "Printed", es: "Impreso" },
+  "prep.pstatus.verified": { pt: "Verificado", en: "Verified", es: "Verificado" },
+  "col.item": { pt: "Item", en: "Item", es: "Ítem" },
+  "col.status": { pt: "Estado", en: "Status", es: "Estado" },
+  "col.notes": { pt: "Notas", en: "Notes", es: "Notas" },
+
+  // Cabeçalho do documento
+  "hdr.surgeonLine": {
+    pt: "Dr. António Matos da Fonseca (Médico – Cirurgia Maxilo-Facial)",
+    en: "Dr António Matos da Fonseca (Doctor – Maxillofacial Surgery)",
+    es: "Dr. António Matos da Fonseca (Médico – Cirugía Maxilofacial)",
+  },
+  "hdr.processNo": { pt: "Proc. Nº", en: "Case No.", es: "Nº de Caso" },
+  "hdr.date": { pt: "Data", en: "Date", es: "Fecha" },
+
+  // Banner de demonstração
+  "demo.headerTitle": { pt: "EXEMPLO — NÃO CLÍNICO", en: "SAMPLE — NON-CLINICAL", es: "EJEMPLO — NO CLÍNICO" },
+  "demo.headerBody": {
+    pt: "Este protocolo é uma ficha de demonstração com dados completamente fictícios. Não deve ser utilizado para fins clínicos, legais ou administrativos.",
+    en: "This protocol is a demonstration record with entirely fictitious data. It must not be used for clinical, legal or administrative purposes.",
+    es: "Este protocolo es una ficha de demostración con datos completamente ficticios. No debe utilizarse con fines clínicos, legales o administrativos.",
+  },
+  "demo.footer": {
+    pt: "DEMONSTRAÇÃO — DADOS FICTÍCIOS — NÃO CLÍNICO",
+    en: "DEMONSTRATION — FICTITIOUS DATA — NON-CLINICAL",
+    es: "DEMOSTRACIÓN — DATOS FICTICIOS — NO CLÍNICO",
+  },
+  "demo.badge": { pt: "DEMONSTRAÇÃO", en: "DEMONSTRATION", es: "DEMOSTRACIÓN" },
+
+  // Identificação do doente
+  "id.name": { pt: "Nome", en: "Name", es: "Nombre" },
+  "id.ageSex": { pt: "Idade / Sexo", en: "Age / Sex", es: "Edad / Sexo" },
+  "id.years": { pt: "anos", en: "years", es: "años" },
+  "sex.male": { pt: "Masc", en: "Male", es: "Masc" },
+  "sex.female": { pt: "Fem", en: "Female", es: "Fem" },
+  "id.processNo": { pt: "Proc. Nº", en: "Case No.", es: "Nº de Caso" },
+  "id.utenteNo": { pt: "Nº de Utente", en: "Health Service No.", es: "Nº de Usuario" },
+  "id.citizenCardNo": { pt: "Nº Cartão de Cidadão", en: "Citizen Card No.", es: "Nº de Documento de Identidad" },
+  "id.procedure": { pt: "Procedimento", en: "Procedure", es: "Procedimiento" },
+
+  // Dados da cirurgia / internamento
+  "sec.surgeryData.relatorio": { pt: "Terapêutica Cirúrgica Ortognática", en: "Orthognathic Surgical Treatment", es: "Terapéutica Quirúrgica Ortognática" },
+  "surg.interventionDate": { pt: "Data da intervenção cirúrgica", en: "Date of surgical intervention", es: "Fecha de la intervención quirúrgica" },
+  "surg.interventionDate.tbd": { pt: "a agendar", en: "to be scheduled", es: "por programar" },
+  "surg.interventionLocation": { pt: "Local da intervenção", en: "Place of intervention", es: "Lugar de la intervención" },
+  "surg.interventionLocation.tbd": { pt: "a definir", en: "to be defined", es: "por definir" },
+  "surg.expectedStay": { pt: "Tempo de Internamento Previsto", en: "Expected Length of Stay", es: "Tiempo de Ingreso Previsto" },
+  "surg.expectedStay.default": { pt: "24 Horas", en: "24 Hours", es: "24 Horas" },
+  "surg.hospital": { pt: "Hospital", en: "Hospital", es: "Hospital" },
+  "surg.surgeryDate": { pt: "Data da cirurgia", en: "Date of surgery", es: "Fecha de la cirugía" },
+  "surg.surgeon": { pt: "Cirurgião", en: "Surgeon", es: "Cirujano" },
+  "surg.expectedStayShort": { pt: "Internamento previsto", en: "Expected admission", es: "Ingreso previsto" },
+  "surg.admission": { pt: "Internamento", en: "Admission", es: "Ingreso" },
+  "surg.discharge": { pt: "Alta", en: "Discharge", es: "Alta" },
+  "surg.stayDuration": { pt: "Duração do internamento", en: "Length of stay", es: "Duración del ingreso" },
+  "common.hours": { pt: "horas", en: "hours", es: "horas" },
+  "common.at": { pt: "às", en: "at", es: "a las" },
+
+  // Atos médicos
+  "sec.medicalActs": { pt: "Atos Médicos", en: "Medical Acts", es: "Actos Médicos" },
+  "acts.intro": {
+    pt: "Baseado na Tabela de Código de Nomenclatura e Valor Relativo de Actos Médicos da Ordem dos Médicos — sob anestesia geral realização de:",
+    en: "Based on the Portuguese Medical Association's Nomenclature Code and Relative Value of Medical Acts table — under general anaesthesia, performance of:",
+    es: "Basado en la Tabla de Código de Nomenclatura y Valor Relativo de Actos Médicos de la Orden de los Médicos — bajo anestesia general, realización de:",
+  },
+  "acts.empty": {
+    pt: "Sem atos médicos derivados do plano cirúrgico — complete o plano primeiro.",
+    en: "No medical acts derived from the surgical plan — complete the plan first.",
+    es: "Sin actos médicos derivados del plan quirúrgico — complete el plan primero.",
+  },
+
+  // Equipa cirúrgica
+  "sec.team": { pt: "Equipa Cirúrgica", en: "Surgical Team", es: "Equipo Quirúrgico" },
+  "sec.teamShort": { pt: "Equipa", en: "Team", es: "Equipo" },
+  "team.composition": {
+    pt: "Equipa composta de Cirurgião, 1º Ajudante, 2º Ajudante, Instrumentista e Anestesista.",
+    en: "Team comprising Surgeon, First Assistant, Second Assistant, Scrub Nurse and Anaesthetist.",
+    es: "Equipo compuesto por Cirujano, 1er Ayudante, 2º Ayudante, Instrumentista y Anestesista.",
+  },
+  "team.lead": { pt: "Responsável pela Equipa Cirúrgica", en: "Surgical Team Lead", es: "Responsable del Equipo Quirúrgico" },
+  "team.omNo": { pt: "Nº OM", en: "Medical Council No.", es: "Nº de Colegiado" },
+  "team.surgeon": { pt: "Cirurgião", en: "Surgeon", es: "Cirujano" },
+  "team.anesthesiologist": { pt: "Anestesista", en: "Anaesthetist", es: "Anestesista" },
+  "team.firstAssistant": { pt: "1º Ajudante", en: "First Assistant", es: "1er Ayudante" },
+  "team.instrumentist": { pt: "Instrumentista", en: "Scrub Nurse", es: "Instrumentista" },
+  "team.secondAssistant": { pt: "2º Ajudante", en: "Second Assistant", es: "2º Ayudante" },
+  "team.circulating": { pt: "Circulante", en: "Circulating Nurse", es: "Circulante" },
+
+  // Checklist pré-operatória (antiga)
+  "sec.checklist": { pt: "Checklist Pré-Operatória", en: "Pre-operative Checklist", es: "Lista de Comprobación Preoperatoria" },
+  "check.status.ok": { pt: "Ok", en: "OK", es: "Ok" },
+  "check.status.missing": { pt: "Em falta", en: "Missing", es: "Falta" },
+  "check.status.na": { pt: "N/A", en: "N/A", es: "N/A" },
+
+  // Avisos importantes
+  "sec.alerts": { pt: "Avisos Importantes", en: "Important Warnings", es: "Avisos Importantes" },
+
+  // Parte nasal
+  "sec.nasal": { pt: "Parte Nasal", en: "Nasal Component", es: "Componente Nasal" },
+
+  // Sequência cirúrgica
+  "sec.sequence": { pt: "Sequência Cirúrgica", en: "Surgical Sequence", es: "Secuencia Quirúrgica" },
+
+  // Registo intra-operatório
+  "sec.intraop": { pt: "Registo Intra-operatório", en: "Intra-operative Record", es: "Registro Intraoperatorio" },
+  "intraop.anesthesia": { pt: "Anestesia", en: "Anaesthesia", es: "Anestesia" },
+  "intraop.surgery": { pt: "Cirurgia", en: "Surgery", es: "Cirugía" },
+  "intraop.start": { pt: "Início", en: "Start", es: "Inicio" },
+  "intraop.end": { pt: "Fim", en: "End", es: "Fin" },
+  "intraop.complications": { pt: "Complicações Intra-operatórias", en: "Intra-operative Complications", es: "Complicaciones Intraoperatorias" },
+  "intraop.action": { pt: "Ação", en: "Action", es: "Acción" },
+
+  // Planeamento / fotografias / ficheiros
+  "sec.planningImages": { pt: "Planeamento Virtual 3D", en: "Virtual 3D Planning", es: "Planificación Virtual 3D" },
+  "sec.clinicalPhotos": { pt: "Documentação Fotográfica Clínica", en: "Clinical Photographic Documentation", es: "Documentación Fotográfica Clínica" },
+  "sec.files3d": { pt: "Inventário de Ficheiros 3D", en: "3D File Inventory", es: "Inventario de Archivos 3D" },
+  "files3d.file": { pt: "Ficheiro", en: "File", es: "Archivo" },
+  "files3d.type": { pt: "Tipo", en: "Type", es: "Tipo" },
+  "files3d.format": { pt: "Formato", en: "Format", es: "Formato" },
+  "files3d.origin": { pt: "Origem", en: "Source", es: "Origen" },
+  "files3d.date": { pt: "Data", en: "Date", es: "Fecha" },
+  "files3d.version": { pt: "Versão", en: "Version", es: "Versión" },
+
+  // Diagramas cirúrgicos
+  "sec.diagrams": { pt: "Diagramas Cirúrgicos — Osteotomias & Marcações", en: "Surgical Diagrams — Osteotomies & Markings", es: "Diagramas Quirúrgicos — Osteotomías y Marcas" },
+
+  // Equipamento piezoelétrico
+  "sec.piezo": { pt: "Equipamento Piezoelétrico", en: "Piezoelectric Equipment", es: "Equipo Piezoeléctrico" },
+  "piezo.system": { pt: "Sistema", en: "System", es: "Sistema" },
+  "piezo.otherManufacturer": { pt: "Outro fabricante", en: "Other manufacturer", es: "Otro fabricante" },
+  "piezo.model": { pt: "Modelo", en: "Model", es: "Modelo" },
+  "piezo.tip": { pt: "Ponta / Inserto", en: "Tip / Insert", es: "Punta / Inserto" },
+  "piezo.serial": { pt: "Nº de Série", en: "Serial No.", es: "Nº de Serie" },
+  "piezo.notes": { pt: "Observações", en: "Notes", es: "Observaciones" },
+
+  // Notas internas
+  "sec.internalNotes": { pt: "Instruções / Notas Pós-Operatórias (Internas)", en: "Post-operative Instructions / Notes (Internal)", es: "Instrucciones / Notas Postoperatorias (Internas)" },
+  "internal.reopenHistory": { pt: "Histórico de reaberturas:", en: "Reopening history:", es: "Historial de reaperturas:" },
+
+  // Assinatura
+  "sign.forRep": { pt: "p/ Dr. António Matos da Fonseca", en: "on behalf of Dr António Matos da Fonseca", es: "por Dr. António Matos da Fonseca" },
+  "sign.role": { pt: "Médico – Cirurgião Maxilo-Facial", en: "Doctor – Maxillofacial Surgeon", es: "Médico – Cirujano Maxilofacial" },
+  "sign.omLicense": { pt: "Cédula Profissional OM n.º 21892", en: "Medical Council Licence No. 21892", es: "Cédula Profesional OM nº 21892" },
+
+  // Rodapé da clínica
+  "footer.legal": {
+    pt: "Relatório ao abrigo do Artigo 98, § 1 e 2 do Código Deontológico da Ordem dos Médicos. Relatório assinado digitalmente. Esta é uma impressão do original que está disponível para consulta, nos termos da Lei.",
+    en: "Report issued under Article 98, § 1 and 2 of the Code of Ethics of the Portuguese Medical Association. Report signed digitally. This is a printout of the original, which is available for consultation under the law.",
+    es: "Informe emitido al amparo del Artículo 98, § 1 y 2 del Código Deontológico de la Orden de los Médicos. Informe firmado digitalmente. Esta es una impresión del original que está disponible para consulta, en los términos de la Ley.",
+  },
+
+  // Complementos estruturados (regiões e etiquetas fixas)
+  "compl.byRegion": { pt: "Complementos por Região", en: "Complements by Region", es: "Complementos por Región" },
+  "compl.alloplastic": { pt: "Implantes aloplásticos", en: "Alloplastic implants", es: "Implantes aloplásticos" },
+  "compl.region": { pt: "Região", en: "Region", es: "Región" },
+  "compl.side": { pt: "Lado", en: "Side", es: "Lado" },
+  "compl.material": { pt: "Material", en: "Material", es: "Material" },
+  "compl.brandRef": { pt: "Marca / Ref.", en: "Brand / Ref.", es: "Marca / Ref." },
+  "compl.lot": { pt: "Lote", en: "Batch", es: "Lote" },
+  "compl.other": { pt: "Outros procedimentos", en: "Other procedures", es: "Otros procedimientos" },
+
+  // Lab prediction (etiquetas fixas)
+  "lab.mallampati": { pt: "Mallampati", en: "Mallampati", es: "Mallampati" },
+  "lab.surgeryStart": { pt: "Início da cirurgia", en: "Surgery start", es: "Inicio de la cirugía" },
+  "lab.specialCare": { pt: "Cuidados especiais", en: "Special care", es: "Cuidados especiales" },
+  "lab.complements": { pt: "Complementos", en: "Complements", es: "Complementos" },
+  "lab.col.no": { pt: "Nº", en: "No.", es: "Nº" },
+  "lab.col.check": { pt: "Verificação", en: "Check", es: "Verificación" },
+  "lab.col.result": { pt: "Resultado", en: "Result", es: "Resultado" },
+  "lab.col.sideShort": { pt: "Lado", en: "Side", es: "Lado" },
+  "lab.col.note": { pt: "Nota", en: "Note", es: "Nota" },
+
+  // Plano cirúrgico (movimentos)
+  "plan.title": { pt: "Plano Cirúrgico — Movimentos Planeados", en: "Surgical Plan — Planned Movements", es: "Plan Quirúrgico — Movimientos Planificados" },
+  "plan.col.segment": { pt: "Segmento", en: "Segment", es: "Segmento" },
+  "plan.col.sagittal": { pt: "Avanço/Recuo\n(Sagital)", en: "Advance/Setback\n(Sagittal)", es: "Avance/Retroceso\n(Sagital)" },
+  "plan.col.vertical": { pt: "Impacção/Descida\n(Vertical)", en: "Impaction/Down-graft\n(Vertical)", es: "Impactación/Descenso\n(Vertical)" },
+  "plan.col.transverseR": { pt: "Transverso Dir.", en: "Transverse R.", es: "Transverso Der." },
+  "plan.col.transverseL": { pt: "Transverso Esq.", en: "Transverse L.", es: "Transverso Izq." },
+  "plan.col.rotation": { pt: "Rotação (Yaw)", en: "Rotation (Yaw)", es: "Rotación (Yaw)" },
+  "plan.maxilla": { pt: "Maxila", en: "Maxilla", es: "Maxila" },
+  "plan.mandible": { pt: "Mandíbula", en: "Mandible", es: "Mandíbula" },
+  "plan.chin": { pt: "Mento", en: "Chin", es: "Mentón" },
+  "plan.maxillaRight": { pt: "Maxila — Dta. (ENP)", en: "Maxilla — R. (PNS)", es: "Maxila — Der. (ENP)" },
+  "plan.maxillaLeft": { pt: "Maxila — Esq. (ponto A)", en: "Maxilla — L. (point A)", es: "Maxila — Izq. (punto A)" },
+  "plan.boneGraft": { pt: "Enxerto ósseo", en: "Bone graft", es: "Injerto óseo" },
+  "plan.condylar": { pt: "Condilar", en: "Condylar", es: "Condilar" },
+  "plan.mentoplasty": { pt: "Mentoplastia", en: "Genioplasty", es: "Mentoplastia" },
+  "plan.associated": { pt: "Procedimentos associados", en: "Associated procedures", es: "Procedimientos asociados" },
+
+  // Osteossíntese
+  "ost.title": { pt: "Materiais de Osteossíntese", en: "Osteosynthesis Materials", es: "Materiales de Osteosíntesis" },
+  "ost.platesUsed": { pt: "Placas Utilizadas", en: "Plates Used", es: "Placas Utilizadas" },
+  "ost.plate": { pt: "placa", en: "plate", es: "placa" },
+  "ost.plates": { pt: "placas", en: "plates", es: "placas" },
+  "ost.col.type": { pt: "Tipo", en: "Type", es: "Tipo" },
+  "ost.col.zone": { pt: "Zona", en: "Zone", es: "Zona" },
+  "ost.col.brandSystem": { pt: "Marca / Sistema", en: "Brand / System", es: "Marca / Sistema" },
+  "ost.col.reference": { pt: "Referência", en: "Reference", es: "Referencia" },
+  "ost.col.lot": { pt: "Lote", en: "Batch", es: "Lote" },
+  "ost.col.qty": { pt: "Qtd", en: "Qty", es: "Cant." },
+  "ost.screwDetail": { pt: "Detalhe de Parafusos por Placa", en: "Screw Detail per Plate", es: "Detalle de Tornillos por Placa" },
+  "ost.col.plate": { pt: "Placa", en: "Plate", es: "Placa" },
+  "ost.col.selfTap": { pt: "Auto-Perf.", en: "Self-tap.", es: "Autorroscante" },
+  "ost.col.diameter": { pt: "Diâm.", en: "Diam.", es: "Diám." },
+  "ost.col.lengthShort": { pt: "Comp.", en: "Length", es: "Long." },
+  "ost.col.qtyShort": { pt: "Qtd.", en: "Qty.", es: "Cant." },
+  "ost.col.location": { pt: "Localização", en: "Location", es: "Localización" },
+  "ost.drillsUsed": { pt: "Brocas Utilizadas", en: "Drills Used", es: "Fresas Utilizadas" },
+  "ost.col.brand": { pt: "Marca", en: "Brand", es: "Marca" },
+  "ost.col.diameterMm": { pt: "Diâm. (mm)", en: "Diam. (mm)", es: "Diám. (mm)" },
+  "ost.col.uses": { pt: "Nº Utilizações", en: "No. of Uses", es: "Nº de Usos" },
+  "ost.drill.twist": { pt: "Helicoidal", en: "Twist", es: "Helicoidal" },
+  "ost.drill.step": { pt: "Escalonada", en: "Step", es: "Escalonada" },
+  "ost.sawsUsed": { pt: "Serras / Lâminas Utilizadas", en: "Saws / Blades Used", es: "Sierras / Hojas Utilizadas" },
+  "ost.col.bladeRef": { pt: "Ref. Lâmina", en: "Blade Ref.", es: "Ref. Hoja" },
+  "ost.saw.oscillating": { pt: "Oscilante", en: "Oscillating", es: "Oscilante" },
+  "ost.saw.sagittal": { pt: "Sagital", en: "Sagittal", es: "Sagital" },
+  "ost.saw.reciprocating": { pt: "Recíproca", en: "Reciprocating", es: "Recíproca" },
 };
 
 function t(key: string, lang: DocLang): string {
@@ -184,7 +435,14 @@ function MovementsRow({ segment, movements }: { segment: string; movements?: Ort
   );
 }
 
-function SurgicalPlanPrint({ plan }: { plan: SurgicalPlan }) {
+function tMultiline(key: string, lang: DocLang): React.ReactNode {
+  const parts = t(key, lang).split("\n");
+  return parts.map((p, i) => (
+    <span key={i}>{i > 0 && <br />}{p}</span>
+  ));
+}
+
+function SurgicalPlanPrint({ plan, lang = "pt" }: { plan: SurgicalPlan; lang?: DocLang }) {
   const maxilla = plan.maxilla?.included ? plan.maxilla : undefined;
   const mandible = plan.mandible?.included ? plan.mandible : undefined;
   const chin = plan.chin?.included ? plan.chin : undefined;
@@ -194,18 +452,18 @@ function SurgicalPlanPrint({ plan }: { plan: SurgicalPlan }) {
   return (
     <div className="mb-8">
       <h2 className="text-sm font-bold uppercase tracking-widest bg-gray-100 p-2 mb-4 border-l-4 border-primary">
-        Plano Cirúrgico — Movimentos Planeados
+        {t("plan.title", lang)}
       </h2>
 
       <table className="w-full text-xs border-collapse border border-gray-300 mb-3">
         <thead className="bg-gray-50">
           <tr>
-            <th className="border border-gray-300 px-2 py-1 text-left">Segmento</th>
-            <th className="border border-gray-300 px-2 py-1 text-center">Avanço/Recuo<br />(Sagital)</th>
-            <th className="border border-gray-300 px-2 py-1 text-center">Impacção/Descida<br />(Vertical)</th>
-            <th className="border border-gray-300 px-2 py-1 text-center">Transverso Dir.</th>
-            <th className="border border-gray-300 px-2 py-1 text-center">Transverso Esq.</th>
-            <th className="border border-gray-300 px-2 py-1 text-center">Rotação (Yaw)</th>
+            <th className="border border-gray-300 px-2 py-1 text-left">{t("plan.col.segment", lang)}</th>
+            <th className="border border-gray-300 px-2 py-1 text-center">{tMultiline("plan.col.sagittal", lang)}</th>
+            <th className="border border-gray-300 px-2 py-1 text-center">{tMultiline("plan.col.vertical", lang)}</th>
+            <th className="border border-gray-300 px-2 py-1 text-center">{t("plan.col.transverseR", lang)}</th>
+            <th className="border border-gray-300 px-2 py-1 text-center">{t("plan.col.transverseL", lang)}</th>
+            <th className="border border-gray-300 px-2 py-1 text-center">{t("plan.col.rotation", lang)}</th>
           </tr>
         </thead>
         <tbody>
@@ -214,7 +472,7 @@ function SurgicalPlanPrint({ plan }: { plan: SurgicalPlan }) {
               maxilla.segments.map((seg, i) => (
                 <MovementsRow
                   key={i}
-                  segment={`Maxila — ${SEGMENT_PRINT_LABELS[seg.segment as string] || seg.segment || "Total"}`}
+                  segment={`${t("plan.maxilla", lang)} — ${SEGMENT_PRINT_LABELS[seg.segment as string] || seg.segment || "Total"}`}
                   movements={seg.movements}
                 />
               ))
@@ -223,45 +481,45 @@ function SurgicalPlanPrint({ plan }: { plan: SurgicalPlan }) {
               const hasSides = m && (m.sagittalRight != null || m.sagittalLeft != null || m.verticalRight != null || m.verticalLeft != null);
               return hasSides ? (
                 <>
-                  <MovementsRow segment="Maxila — Dta. (ENP)" movements={{ sagittal: m!.sagittalRight, vertical: m!.verticalRight, transverseRight: m!.transverseRight, rotation: m!.rotation }} />
-                  <MovementsRow segment="Maxila — Esq. (ponto A)" movements={{ sagittal: m!.sagittalLeft, vertical: m!.verticalLeft, transverseLeft: m!.transverseLeft }} />
+                  <MovementsRow segment={t("plan.maxillaRight", lang)} movements={{ sagittal: m!.sagittalRight, vertical: m!.verticalRight, transverseRight: m!.transverseRight, rotation: m!.rotation }} />
+                  <MovementsRow segment={t("plan.maxillaLeft", lang)} movements={{ sagittal: m!.sagittalLeft, vertical: m!.verticalLeft, transverseLeft: m!.transverseLeft }} />
                 </>
               ) : (
-                <MovementsRow segment="Maxila" movements={m} />
+                <MovementsRow segment={t("plan.maxilla", lang)} movements={m} />
               );
             })())}
-          {mandible && <MovementsRow segment="Mandíbula" movements={mandible.movements} />}
-          {chin && <MovementsRow segment="Mento" movements={chin.movements} />}
+          {mandible && <MovementsRow segment={t("plan.mandible", lang)} movements={mandible.movements} />}
+          {chin && <MovementsRow segment={t("plan.chin", lang)} movements={chin.movements} />}
         </tbody>
       </table>
 
       <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-xs">
         {maxilla && (
           <div>
-            <span className="font-semibold text-gray-600">Maxila:</span>{" "}
+            <span className="font-semibold text-gray-600">{t("plan.maxilla", lang)}:</span>{" "}
             {maxilla.osteotomyType ? (MAXILLA_OSTEOTOMY_LABELS[maxilla.osteotomyType] || maxilla.osteotomyType) : "LeFort I Standard"}
-            {maxilla.bonGraft ? ` • Enxerto ósseo${maxilla.graftSource ? ` (${maxilla.graftSource})` : ""}` : ""}
+            {maxilla.bonGraft ? ` • ${t("plan.boneGraft", lang)}${maxilla.graftSource ? ` (${maxilla.graftSource})` : ""}` : ""}
             {maxilla.notes ? ` • ${maxilla.notes}` : ""}
           </div>
         )}
         {mandible && (
           <div>
-            <span className="font-semibold text-gray-600">Mandíbula:</span>{" "}
+            <span className="font-semibold text-gray-600">{t("plan.mandible", lang)}:</span>{" "}
             {mandible.osteotomyType ? (MANDIBLE_OSTEOTOMY_LABELS[mandible.osteotomyType] || mandible.osteotomyType) : "BSSO (Sagital Bilateral)"}
-            {mandible.condylarPositioning ? ` • Condilar: ${CONDYLAR_LABELS[mandible.condylarPositioning] || mandible.condylarPositioning}` : ""}
+            {mandible.condylarPositioning ? ` • ${t("plan.condylar", lang)}: ${CONDYLAR_LABELS[mandible.condylarPositioning] || mandible.condylarPositioning}` : ""}
             {mandible.notes ? ` • ${mandible.notes}` : ""}
           </div>
         )}
         {chin && (
           <div>
-            <span className="font-semibold text-gray-600">Mento:</span>{" "}
-            {chin.procedure ? (CHIN_PROCEDURE_LABELS[chin.procedure] || chin.procedure) : "Mentoplastia"}
+            <span className="font-semibold text-gray-600">{t("plan.chin", lang)}:</span>{" "}
+            {chin.procedure ? (CHIN_PROCEDURE_LABELS[chin.procedure] || chin.procedure) : t("plan.mentoplasty", lang)}
             {chin.notes ? ` • ${chin.notes}` : ""}
           </div>
         )}
         {associated.length > 0 && (
           <div className="col-span-2">
-            <span className="font-semibold text-gray-600">Procedimentos associados:</span>{" "}
+            <span className="font-semibold text-gray-600">{t("plan.associated", lang)}:</span>{" "}
             {associated.map((p) => `${p.name}${p.details ? ` (${p.details})` : ""}`).join("; ")}
           </div>
         )}
@@ -272,17 +530,18 @@ function SurgicalPlanPrint({ plan }: { plan: SurgicalPlan }) {
 
 // ─── Osteossíntese print sub-section ────────────────────────────────────────
 
-function OsteosynthesisPrint({ plates, drills, saws }: {
+function OsteosynthesisPrint({ plates, drills, saws, lang = "pt" }: {
   plates: PlateRecord[];
   drills?: DrillRecord[];
   saws?: SawRecord[];
+  lang?: DocLang;
 }) {
   if (!plates.length && !drills?.length && !saws?.length) return null;
 
   return (
     <div className="mb-8">
       <h2 className="text-sm font-bold uppercase tracking-widest bg-gray-100 p-2 mb-4 border-l-4 border-primary">
-        Materiais de Osteossíntese
+        {t("ost.title", lang)}
       </h2>
 
       <div className="flex gap-6 items-start mb-5">
@@ -294,18 +553,18 @@ function OsteosynthesisPrint({ plates, drills, saws }: {
         {/* Plates summary */}
         <div className="flex-1">
           <div className="text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">
-            Placas Utilizadas — {plates.length} placa{plates.length !== 1 ? "s" : ""}
+            {t("ost.platesUsed", lang)} — {plates.length} {plates.length !== 1 ? t("ost.plates", lang) : t("ost.plate", lang)}
           </div>
           <table className="w-full text-xs border-collapse border border-gray-300">
             <thead className="bg-gray-50">
               <tr>
                 <th className="border border-gray-300 px-2 py-1 text-left">#</th>
-                <th className="border border-gray-300 px-2 py-1 text-left">Tipo</th>
-                <th className="border border-gray-300 px-2 py-1 text-left">Zona</th>
-                <th className="border border-gray-300 px-2 py-1 text-left">Marca / Sistema</th>
-                <th className="border border-gray-300 px-2 py-1 text-left">Referência</th>
-                <th className="border border-gray-300 px-2 py-1 text-left">Lote</th>
-                <th className="border border-gray-300 px-2 py-1 text-center">Qtd</th>
+                <th className="border border-gray-300 px-2 py-1 text-left">{t("ost.col.type", lang)}</th>
+                <th className="border border-gray-300 px-2 py-1 text-left">{t("ost.col.zone", lang)}</th>
+                <th className="border border-gray-300 px-2 py-1 text-left">{t("ost.col.brandSystem", lang)}</th>
+                <th className="border border-gray-300 px-2 py-1 text-left">{t("ost.col.reference", lang)}</th>
+                <th className="border border-gray-300 px-2 py-1 text-left">{t("ost.col.lot", lang)}</th>
+                <th className="border border-gray-300 px-2 py-1 text-center">{t("ost.col.qty", lang)}</th>
               </tr>
             </thead>
             <tbody>
@@ -332,19 +591,19 @@ function OsteosynthesisPrint({ plates, drills, saws }: {
       {/* Per-plate screws detail */}
       {plates.some(p => p.screws && p.screws.length > 0) && (
         <div className="mb-4">
-          <div className="text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Detalhe de Parafusos por Placa</div>
+          <div className="text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("ost.screwDetail", lang)}</div>
           <table className="w-full text-[11px] border-collapse border border-gray-300">
             <thead className="bg-gray-50">
               <tr>
-                <th className="border border-gray-300 px-2 py-1 text-left">Placa</th>
-                <th className="border border-gray-300 px-2 py-1 text-left">Tipo</th>
-                <th className="border border-gray-300 px-2 py-1 text-center">Auto-Perf.</th>
-                <th className="border border-gray-300 px-2 py-1 text-center">Diâm.</th>
-                <th className="border border-gray-300 px-2 py-1 text-center">Comp.</th>
-                <th className="border border-gray-300 px-2 py-1 text-center">Qtd.</th>
-                <th className="border border-gray-300 px-2 py-1 text-left">Referência</th>
-                <th className="border border-gray-300 px-2 py-1 text-left">Lote</th>
-                <th className="border border-gray-300 px-2 py-1 text-left">Localização</th>
+                <th className="border border-gray-300 px-2 py-1 text-left">{t("ost.col.plate", lang)}</th>
+                <th className="border border-gray-300 px-2 py-1 text-left">{t("ost.col.type", lang)}</th>
+                <th className="border border-gray-300 px-2 py-1 text-center">{t("ost.col.selfTap", lang)}</th>
+                <th className="border border-gray-300 px-2 py-1 text-center">{t("ost.col.diameter", lang)}</th>
+                <th className="border border-gray-300 px-2 py-1 text-center">{t("ost.col.lengthShort", lang)}</th>
+                <th className="border border-gray-300 px-2 py-1 text-center">{t("ost.col.qtyShort", lang)}</th>
+                <th className="border border-gray-300 px-2 py-1 text-left">{t("ost.col.reference", lang)}</th>
+                <th className="border border-gray-300 px-2 py-1 text-left">{t("ost.col.lot", lang)}</th>
+                <th className="border border-gray-300 px-2 py-1 text-left">{t("ost.col.location", lang)}</th>
               </tr>
             </thead>
             <tbody>
@@ -389,15 +648,15 @@ function OsteosynthesisPrint({ plates, drills, saws }: {
       {/* Drills */}
       {(drills || []).length > 0 && (
         <div className="mb-4">
-          <div className="text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Brocas Utilizadas</div>
+          <div className="text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("ost.drillsUsed", lang)}</div>
           <table className="w-full text-xs border-collapse border border-gray-300">
             <thead className="bg-gray-50">
               <tr>
-                <th className="border border-gray-300 px-2 py-1 text-left">Marca</th>
-                <th className="border border-gray-300 px-2 py-1 text-left">Diâm. (mm)</th>
-                <th className="border border-gray-300 px-2 py-1 text-left">Tipo</th>
-                <th className="border border-gray-300 px-2 py-1 text-left">Referência</th>
-                <th className="border border-gray-300 px-2 py-1 text-center">Nº Utilizações</th>
+                <th className="border border-gray-300 px-2 py-1 text-left">{t("ost.col.brand", lang)}</th>
+                <th className="border border-gray-300 px-2 py-1 text-left">{t("ost.col.diameterMm", lang)}</th>
+                <th className="border border-gray-300 px-2 py-1 text-left">{t("ost.col.type", lang)}</th>
+                <th className="border border-gray-300 px-2 py-1 text-left">{t("ost.col.reference", lang)}</th>
+                <th className="border border-gray-300 px-2 py-1 text-center">{t("ost.col.uses", lang)}</th>
               </tr>
             </thead>
             <tbody>
@@ -405,7 +664,7 @@ function OsteosynthesisPrint({ plates, drills, saws }: {
                 <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}>
                   <td className="border border-gray-300 px-2 py-1">{d.brand || "—"}</td>
                   <td className="border border-gray-300 px-2 py-1 font-mono">{d.diameter || "—"}</td>
-                  <td className="border border-gray-300 px-2 py-1">{d.drillType === "twist" ? "Helicoidal" : d.drillType === "step" ? "Escalonada" : "—"}</td>
+                  <td className="border border-gray-300 px-2 py-1">{d.drillType === "twist" ? t("ost.drill.twist", lang) : d.drillType === "step" ? t("ost.drill.step", lang) : "—"}</td>
                   <td className="border border-gray-300 px-2 py-1 font-mono text-gray-700">{d.reference || "—"}</td>
                   <td className="border border-gray-300 px-2 py-1 text-center">{d.usedCount ?? "—"}</td>
                 </tr>
@@ -418,14 +677,14 @@ function OsteosynthesisPrint({ plates, drills, saws }: {
       {/* Saws */}
       {(saws || []).length > 0 && (
         <div>
-          <div className="text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Serras / Lâminas Utilizadas</div>
+          <div className="text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("ost.sawsUsed", lang)}</div>
           <table className="w-full text-xs border-collapse border border-gray-300">
             <thead className="bg-gray-50">
               <tr>
-                <th className="border border-gray-300 px-2 py-1 text-left">Marca</th>
-                <th className="border border-gray-300 px-2 py-1 text-left">Tipo</th>
-                <th className="border border-gray-300 px-2 py-1 text-left">Ref. Lâmina</th>
-                <th className="border border-gray-300 px-2 py-1 text-center">Nº Utilizações</th>
+                <th className="border border-gray-300 px-2 py-1 text-left">{t("ost.col.brand", lang)}</th>
+                <th className="border border-gray-300 px-2 py-1 text-left">{t("ost.col.type", lang)}</th>
+                <th className="border border-gray-300 px-2 py-1 text-left">{t("ost.col.bladeRef", lang)}</th>
+                <th className="border border-gray-300 px-2 py-1 text-center">{t("ost.col.uses", lang)}</th>
               </tr>
             </thead>
             <tbody>
@@ -433,7 +692,7 @@ function OsteosynthesisPrint({ plates, drills, saws }: {
                 <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}>
                   <td className="border border-gray-300 px-2 py-1">{s.brand || "—"}</td>
                   <td className="border border-gray-300 px-2 py-1">
-                    {s.sawType === "oscillating" ? "Oscilante" : s.sawType === "sagittal" ? "Sagital" : s.sawType === "reciprocating" ? "Recíproca" : "—"}
+                    {s.sawType === "oscillating" ? t("ost.saw.oscillating", lang) : s.sawType === "sagittal" ? t("ost.saw.sagittal", lang) : s.sawType === "reciprocating" ? t("ost.saw.reciprocating", lang) : "—"}
                   </td>
                   <td className="border border-gray-300 px-2 py-1 font-mono text-gray-700">{s.bladeRef || "—"}</td>
                   <td className="border border-gray-300 px-2 py-1 text-center">{s.usedCount ?? "—"}</td>
@@ -454,7 +713,8 @@ type SectionKey =
   | "checklist" | "plan" | "planningImages" | "clinicalPhotos" | "sequence"
   | "intraop" | "materials" | "operativeReport" | "recommendations"
   | "homeMedication" | "nextAppointment" | "internalNotes" | "diagrams"
-  | "files3d" | "piezo" | "summary" | "medicalActs";
+  | "files3d" | "piezo" | "summary" | "medicalActs"
+  | "prepChecklist" | "patientInstructions";
 
 const SECTION_DEFS: Array<{ key: SectionKey; label: string }> = [
   { key: "identification", label: "Identificação do doente" },
@@ -462,7 +722,9 @@ const SECTION_DEFS: Array<{ key: SectionKey; label: string }> = [
   { key: "team", label: "Equipa cirúrgica" },
   { key: "diagnosis", label: "Diagnóstico" },
   { key: "labPrediction", label: "Protocolo/Execução Cirúrgica" },
-  { key: "checklist", label: "Checklist pré-operatória" },
+  { key: "checklist", label: "Checklist pré-operatória (antiga)" },
+  { key: "prepChecklist", label: "Checklist de Preparação" },
+  { key: "patientInstructions", label: "Instruções ao doente (QR/link)" },
   { key: "plan", label: "Plano cirúrgico (movimentos)" },
   { key: "planningImages", label: "Imagens de planeamento" },
   { key: "clinicalPhotos", label: "Fotografia clínica" },
@@ -575,18 +837,20 @@ function emptySelection(): Record<SectionKey, boolean> {
 
 // ─── Helpers de conteúdo ─────────────────────────────────────────────────────
 
-function stayDuration(admission?: string | null, discharge?: string | null): string | null {
+function stayDuration(admission: string | null | undefined, discharge: string | null | undefined, lang: DocLang): string | null {
   if (!admission || !discharge) return null;
   const a = new Date(admission);
   const d = new Date(discharge);
   if (isNaN(a.getTime()) || isNaN(d.getTime()) || d <= a) return null;
-  return `${Math.round((d.getTime() - a.getTime()) / 3600000)} horas`;
+  return `${Math.round((d.getTime() - a.getTime()) / 3600000)} ${t("common.hours", lang)}`;
 }
 
-function fmtDateTime(value?: string | null): string {
+function fmtDateTime(value: string | null | undefined, lang: DocLang): string {
   if (!value) return "—";
   const d = new Date(value);
-  return isNaN(d.getTime()) ? value : format(d, "dd/MM/yyyy 'às' HH:mm");
+  if (isNaN(d.getTime())) return value;
+  const at = t("common.at", lang);
+  return `${format(d, "dd/MM/yyyy")} ${at} ${format(d, "HH:mm")}`;
 }
 
 const SKELETAL_LABELS: Record<string, string> = { I: "Classe I", II: "Classe II", III: "Classe III" };
@@ -631,13 +895,13 @@ function LabPredictionPrint({ lab, lang = "pt" }: { lab: LabPrediction; lang?: D
         {t("sec.labPrediction", lang)}
       </h2>
       <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm mb-4">
-        <div><span className="font-semibold text-gray-600">Mallampati:</span> {lab.mallampati ? MALLAMPATI_LABELS[lab.mallampati] || lab.mallampati : "—"}</div>
-        <div><span className="font-semibold text-gray-600">Início da cirurgia:</span> {lab.surgeryStart ? SURGERY_START_LABELS[lab.surgeryStart] || lab.surgeryStart : "—"}</div>
+        <div><span className="font-semibold text-gray-600">{t("lab.mallampati", lang)}:</span> {lab.mallampati ? MALLAMPATI_LABELS[lab.mallampati] || lab.mallampati : "—"}</div>
+        <div><span className="font-semibold text-gray-600">{t("lab.surgeryStart", lang)}:</span> {lab.surgeryStart ? SURGERY_START_LABELS[lab.surgeryStart] || lab.surgeryStart : "—"}</div>
         {lab.specialCare && (
-          <div className="col-span-2"><span className="font-semibold text-gray-600">Cuidados especiais:</span> {lab.specialCare}</div>
+          <div className="col-span-2"><span className="font-semibold text-gray-600">{t("lab.specialCare", lang)}:</span> {lab.specialCare}</div>
         )}
         <div className="col-span-2">
-          <span className="font-semibold text-gray-600">Complementos:</span>{" "}
+          <span className="font-semibold text-gray-600">{t("lab.complements", lang)}:</span>{" "}
           {activeComplements.length > 0 || complements.other
             ? [...activeComplements.map((c) => c.label), ...(complements.other ? [complements.other] : [])].join(" • ")
             : "—"}
@@ -647,12 +911,12 @@ function LabPredictionPrint({ lab, lang = "pt" }: { lab: LabPrediction; lang?: D
         <table className="w-full text-xs border-collapse border border-gray-300">
           <thead className="bg-gray-50">
             <tr>
-              <th className="border border-gray-300 px-2 py-1 text-left w-8">Nº</th>
-              <th className="border border-gray-300 px-2 py-1 text-left">Verificação</th>
-              <th className="border border-gray-300 px-2 py-1 text-left">Resultado</th>
-              <th className="border border-gray-300 px-2 py-1 text-center">Lado</th>
+              <th className="border border-gray-300 px-2 py-1 text-left w-8">{t("lab.col.no", lang)}</th>
+              <th className="border border-gray-300 px-2 py-1 text-left">{t("lab.col.check", lang)}</th>
+              <th className="border border-gray-300 px-2 py-1 text-left">{t("lab.col.result", lang)}</th>
+              <th className="border border-gray-300 px-2 py-1 text-center">{t("lab.col.sideShort", lang)}</th>
               <th className="border border-gray-300 px-2 py-1 text-center">mm</th>
-              <th className="border border-gray-300 px-2 py-1 text-left">Nota</th>
+              <th className="border border-gray-300 px-2 py-1 text-left">{t("lab.col.note", lang)}</th>
             </tr>
           </thead>
           <tbody>
@@ -672,20 +936,19 @@ function LabPredictionPrint({ lab, lang = "pt" }: { lab: LabPrediction; lang?: D
           </tbody>
         </table>
       )}
-      <StructuredComplements lab={lab} />
+      <StructuredComplements lab={lab} lang={lang} />
     </div>
   );
 }
 
 // ─── Rodapé & assinatura ─────────────────────────────────────────────────────
 
-function ClinicFooter({ legal }: { legal?: boolean }) {
+function ClinicFooter({ legal, lang = "pt" }: { legal?: boolean; lang?: DocLang }) {
   return (
     <div className="mt-10 pt-4 border-t border-gray-400 text-center text-[10px] text-gray-600 leading-relaxed">
       {legal && (
         <p className="mb-2 italic text-gray-500">
-          Relatório ao abrigo do Artigo 98, § 1 e 2 do Código Deontológico da Ordem dos Médicos.
-          Relatório assinado digitalmente. Esta é uma impressão do original que está disponível para consulta, nos termos da Lei.
+          {t("footer.legal", lang)}
         </p>
       )}
       <p className="font-semibold text-gray-700">Clínica da Face</p>
@@ -695,7 +958,7 @@ function ClinicFooter({ legal }: { legal?: boolean }) {
   );
 }
 
-function SurgeonSignature({ representative, signatureUrl }: { representative?: string | null; signatureUrl?: string | null }) {
+function SurgeonSignature({ representative, signatureUrl, lang = "pt" }: { representative?: string | null; signatureUrl?: string | null; lang?: DocLang }) {
   const rep = representative?.trim();
   return (
     <div className="mt-16 flex justify-end pr-8">
@@ -705,10 +968,10 @@ function SurgeonSignature({ representative, signatureUrl }: { representative?: s
         ) : (
           <div className="border-b border-black mb-2 h-14"></div>
         )}
-        {rep && <div className="text-xs text-gray-600">p/ Dr. António Matos da Fonseca</div>}
+        {rep && <div className="text-xs text-gray-600">{t("sign.forRep", lang)}</div>}
         <div className="text-sm font-bold">{rep || "Dr. António Matos da Fonseca"}</div>
-        <div className="text-[10px] text-gray-600">Médico – Cirurgião Maxilo-Facial</div>
-        <div className="text-[10px] text-gray-500">Cédula Profissional OM n.º 21892</div>
+        <div className="text-[10px] text-gray-600">{t("sign.role", lang)}</div>
+        <div className="text-[10px] text-gray-500">{t("sign.omLicense", lang)}</div>
       </div>
     </div>
   );
@@ -791,7 +1054,7 @@ const SIDE_LABELS: Record<string, string> = { D: "Direito", E: "Esquerdo", bilat
 const IMPLANT_REGION_LABELS: Record<string, string> = { malar: "Malar", mandibular: "Mandibular", mento: "Mento", outra: "Outra" };
 const IMPLANT_MATERIAL_LABELS: Record<string, string> = { titanio: "Titânio", outro: "Outro" };
 
-function StructuredComplements({ lab }: { lab: LabPrediction }) {
+function StructuredComplements({ lab, lang = "pt" }: { lab: LabPrediction; lang?: DocLang }) {
   const mx = lab.maxillaComplement;
   const md = lab.mandibleComplement;
   const chin = lab.chinComplement;
@@ -836,7 +1099,7 @@ function StructuredComplements({ lab }: { lab: LabPrediction }) {
 
   return (
     <div className="mt-4">
-      <div className="text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Complementos por Região</div>
+      <div className="text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("compl.byRegion", lang)}</div>
       {rows.length > 0 && (
         <table className="w-full text-xs border-collapse border border-gray-300 mb-3">
           <tbody>
@@ -851,16 +1114,16 @@ function StructuredComplements({ lab }: { lab: LabPrediction }) {
       )}
       {implants.length > 0 && (
         <div className="mb-3">
-          <div className="text-[11px] font-semibold text-gray-600 mb-1">Implantes aloplásticos</div>
+          <div className="text-[11px] font-semibold text-gray-600 mb-1">{t("compl.alloplastic", lang)}</div>
           <table className="w-full text-xs border-collapse border border-gray-300">
             <thead className="bg-gray-50">
               <tr>
-                <th className="border border-gray-300 px-2 py-1 text-left">Região</th>
-                <th className="border border-gray-300 px-2 py-1 text-left">Lado</th>
-                <th className="border border-gray-300 px-2 py-1 text-left">Material</th>
+                <th className="border border-gray-300 px-2 py-1 text-left">{t("compl.region", lang)}</th>
+                <th className="border border-gray-300 px-2 py-1 text-left">{t("compl.side", lang)}</th>
+                <th className="border border-gray-300 px-2 py-1 text-left">{t("compl.material", lang)}</th>
                 <th className="border border-gray-300 px-2 py-1 text-center">CAD/CAM</th>
-                <th className="border border-gray-300 px-2 py-1 text-left">Marca / Ref.</th>
-                <th className="border border-gray-300 px-2 py-1 text-left">Lote</th>
+                <th className="border border-gray-300 px-2 py-1 text-left">{t("compl.brandRef", lang)}</th>
+                <th className="border border-gray-300 px-2 py-1 text-left">{t("compl.lot", lang)}</th>
               </tr>
             </thead>
             <tbody>
@@ -880,7 +1143,7 @@ function StructuredComplements({ lab }: { lab: LabPrediction }) {
       )}
       {other && (
         <div className="text-xs">
-          <span className="font-semibold text-gray-600">Outros procedimentos:</span>{" "}
+          <span className="font-semibold text-gray-600">{t("compl.other", lang)}:</span>{" "}
           <span className="whitespace-pre-wrap">{other}</span>
         </div>
       )}
@@ -1101,15 +1364,15 @@ export function ProtocolPrint() {
   const signatureUrl = protocol.signatureImagePath ? "/api/storage" + protocol.signatureImagePath : null;
 
   const checkStatusLabel = {
-    [ChecklistItemStatus.ok]: "Ok",
-    [ChecklistItemStatus.missing]: "Em falta",
-    [ChecklistItemStatus.na]: "N/A"
+    [ChecklistItemStatus.ok]: t("check.status.ok", language),
+    [ChecklistItemStatus.missing]: t("check.status.missing", language),
+    [ChecklistItemStatus.na]: t("check.status.na", language)
   };
 
   const plates = protocol.materials?.plates ?? [];
   const drills = protocol.materials?.drills ?? [];
   const saws   = protocol.materials?.saws   ?? [];
-  const duration = stayDuration(protocol.admissionDateTime, protocol.dischargeDateTime);
+  const duration = stayDuration(protocol.admissionDateTime, protocol.dischargeDateTime, language);
   const diagText = diagnosisNarrative(protocol.preopDiagnosis);
 
   const docTitle =
@@ -1124,7 +1387,7 @@ export function ProtocolPrint() {
 
   // ── Blocos partilhados ──
   const identificationBlock = sel.identification && (
-    <PrintSection title="Identificação do Doente">
+    <PrintSection title={t("sec.identification", language)}>
       <div className="flex gap-4 items-start">
         {headerPhoto && !isNota && (
           <img
@@ -1134,14 +1397,14 @@ export function ProtocolPrint() {
           />
         )}
         <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm flex-1">
-          <div><span className="font-semibold text-gray-600">Nome:</span> {protocol.patientName}</div>
+          <div><span className="font-semibold text-gray-600">{t("id.name", language)}:</span> {protocol.patientName}</div>
           <div>
-            <span className="font-semibold text-gray-600">Idade / Sexo:</span> {protocol.patientAge || "-"} anos / {protocol.patientGender === "M" ? "Masc" : protocol.patientGender === "F" ? "Fem" : "-"}
+            <span className="font-semibold text-gray-600">{t("id.ageSex", language)}:</span> {protocol.patientAge || "-"} {t("id.years", language)} / {protocol.patientGender === "M" ? t("sex.male", language) : protocol.patientGender === "F" ? t("sex.female", language) : "-"}
           </div>
-          <div><span className="font-semibold text-gray-600">Proc. Nº:</span> {protocol.processNumber}</div>
-          {protocol.utenteNumber && <div><span className="font-semibold text-gray-600">Nº de Utente:</span> {protocol.utenteNumber}</div>}
-          {protocol.citizenCardNumber && <div><span className="font-semibold text-gray-600">Nº Cartão de Cidadão:</span> {protocol.citizenCardNumber}</div>}
-          <div className="col-span-2"><span className="font-semibold text-gray-600">Procedimento:</span> <span className="font-bold">{protocol.surgeryType}</span></div>
+          <div><span className="font-semibold text-gray-600">{t("id.processNo", language)}:</span> {protocol.processNumber}</div>
+          {protocol.utenteNumber && <div><span className="font-semibold text-gray-600">{t("id.utenteNo", language)}:</span> {protocol.utenteNumber}</div>}
+          {protocol.citizenCardNumber && <div><span className="font-semibold text-gray-600">{t("id.citizenCardNo", language)}:</span> {protocol.citizenCardNumber}</div>}
+          <div className="col-span-2"><span className="font-semibold text-gray-600">{t("id.procedure", language)}:</span> <span className="font-bold">{protocol.surgeryType}</span></div>
         </div>
       </div>
     </PrintSection>
@@ -1149,33 +1412,32 @@ export function ProtocolPrint() {
 
   const surgeryDataBlock = sel.surgeryData && (isRelatorio ? (
     // Estrutura do Relatório Clínico para seguradoras (modelos CL II / CL III)
-    <PrintSection title="Terapêutica Cirúrgica Ortognática">
+    <PrintSection title={t("sec.surgeryData.relatorio", language)}>
       <div className="text-sm leading-relaxed font-serif space-y-1">
-        <p><span className="font-semibold">Data da intervenção cirúrgica</span> — {protocol.surgeryDate ? format(new Date(protocol.surgeryDate), "dd/MM/yyyy") : "a agendar"}</p>
-        <p><span className="font-semibold">Local da intervenção</span> — {protocol.hospital || "a definir"}</p>
-        <p><span className="font-semibold">Tempo de Internamento Previsto</span> — {protocol.expectedStay || "24 Horas"}</p>
+        <p><span className="font-semibold">{t("surg.interventionDate", language)}</span> — {protocol.surgeryDate ? format(new Date(protocol.surgeryDate), "dd/MM/yyyy") : t("surg.interventionDate.tbd", language)}</p>
+        <p><span className="font-semibold">{t("surg.interventionLocation", language)}</span> — {protocol.hospital || t("surg.interventionLocation.tbd", language)}</p>
+        <p><span className="font-semibold">{t("surg.expectedStay", language)}</span> — {protocol.expectedStay || t("surg.expectedStay.default", language)}</p>
       </div>
     </PrintSection>
   ) : (
-    <PrintSection title="Dados da Cirurgia / Internamento">
+    <PrintSection title={t("sec.surgeryData", language)}>
       <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
-        {protocol.hospital && <div><span className="font-semibold text-gray-600">Hospital:</span> {protocol.hospital}</div>}
-        <div><span className="font-semibold text-gray-600">Data da cirurgia:</span> {protocol.surgeryDate ? format(new Date(protocol.surgeryDate), "dd/MM/yyyy") : "—"}</div>
-        <div><span className="font-semibold text-gray-600">Cirurgião:</span> {protocol.team?.surgeon || "A. Matos da Fonseca"}</div>
-        {protocol.expectedStay && <div><span className="font-semibold text-gray-600">Internamento previsto:</span> {protocol.expectedStay}</div>}
-        <div><span className="font-semibold text-gray-600">Internamento:</span> {fmtDateTime(protocol.admissionDateTime)}</div>
-        <div><span className="font-semibold text-gray-600">Alta:</span> {fmtDateTime(protocol.dischargeDateTime)}</div>
-        {duration && <div><span className="font-semibold text-gray-600">Duração do internamento:</span> {duration}</div>}
+        {protocol.hospital && <div><span className="font-semibold text-gray-600">{t("surg.hospital", language)}:</span> {protocol.hospital}</div>}
+        <div><span className="font-semibold text-gray-600">{t("surg.surgeryDate", language)}:</span> {protocol.surgeryDate ? format(new Date(protocol.surgeryDate), "dd/MM/yyyy") : "—"}</div>
+        <div><span className="font-semibold text-gray-600">{t("surg.surgeon", language)}:</span> {protocol.team?.surgeon || "A. Matos da Fonseca"}</div>
+        {protocol.expectedStay && <div><span className="font-semibold text-gray-600">{t("surg.expectedStayShort", language)}:</span> {protocol.expectedStay}</div>}
+        <div><span className="font-semibold text-gray-600">{t("surg.admission", language)}:</span> {fmtDateTime(protocol.admissionDateTime, language)}</div>
+        <div><span className="font-semibold text-gray-600">{t("surg.discharge", language)}:</span> {fmtDateTime(protocol.dischargeDateTime, language)}</div>
+        {duration && <div><span className="font-semibold text-gray-600">{t("surg.stayDuration", language)}:</span> {duration}</div>}
       </div>
     </PrintSection>
   ));
 
   const medicalActsBlock = sel.medicalActs && (
-    <PrintSection title="Atos Médicos">
+    <PrintSection title={t("sec.medicalActs", language)}>
       <div className="text-sm leading-relaxed font-serif">
         <p className="mb-2">
-          Baseado na Tabela de Código de Nomenclatura e Valor Relativo de Actos Médicos da Ordem dos Médicos —
-          sob anestesia geral realização de:
+          {t("acts.intro", language)}
         </p>
         {medicalActs.length > 0 ? (
           <table className="w-full text-sm border-collapse">
@@ -1190,17 +1452,17 @@ export function ProtocolPrint() {
             </tbody>
           </table>
         ) : (
-          <p className="text-gray-500 italic">Sem atos médicos derivados do plano cirúrgico — complete o plano primeiro.</p>
+          <p className="text-gray-500 italic">{t("acts.empty", language)}</p>
         )}
       </div>
     </PrintSection>
   );
 
   const nextAppointmentBlock = sel.nextAppointment && (protocol.nextAppointmentDate || protocol.nextAppointmentTime) && (
-    <PrintSection title="Próxima Consulta">
+    <PrintSection title={t("sec.nextAppointment", language)}>
       <div className="text-sm">
         {protocol.nextAppointmentDate ? format(new Date(protocol.nextAppointmentDate), "dd/MM/yyyy") : ""}
-        {protocol.nextAppointmentTime ? ` às ${protocol.nextAppointmentTime}` : ""}
+        {protocol.nextAppointmentTime ? ` ${t("common.at", language)} ${protocol.nextAppointmentTime}` : ""}
         {` — ${protocol.nextAppointmentLocation || "Clínica da Face"}`}
       </div>
     </PrintSection>
@@ -1286,15 +1548,25 @@ export function ProtocolPrint() {
     </PrintSection>
   );
 
+  // Texto livre do plano cirúrgico (parte nasal) — traduzível.
+  const nasalNotesDerived = ((protocol.surgicalPlan as any)?.nasalNotes as string | undefined) || "";
+  const nasalNotesText = resolveText("nasalNotes", nasalNotesDerived);
+
+  // Avisos clínicos (texto livre do diagnóstico) — só em documentos internos.
+  const clinicalAlertsDerived = protocol.preopDiagnosis?.clinicalAlerts || "";
+  const clinicalAlertsText = resolveText("clinicalAlerts", clinicalAlertsDerived);
+
   // ── Tradução do documento (EN/ES) ──
   // Blocos de texto traduzíveis e respetivo texto-fonte em PT (texto derivado).
   const TRANSLATABLE_DERIVED: Array<{ blockKey: string; text: string; selected: boolean }> = [
     { blockKey: "diagnosis", text: narrativeDerived, selected: sel.diagnosis },
+    { blockKey: "clinicalAlerts", text: clinicalAlertsDerived, selected: sel.diagnosis && !isNota && !isRelatorio },
     { blockKey: "operativeReport", text: operativeDerived, selected: sel.operativeReport },
     { blockKey: "recommendations", text: recommendationsDerived, selected: sel.recommendations },
     { blockKey: "homeMedication", text: protocol.homeMedication || "", selected: sel.homeMedication },
     { blockKey: "summary", text: summaryDerived, selected: sel.summary },
     { blockKey: "internalNotes", text: protocol.postopNotes || "", selected: sel.internalNotes },
+    { blockKey: "nasalNotes", text: nasalNotesDerived, selected: sel.plan },
   ];
 
   const handleTranslate = async () => {
@@ -1474,10 +1746,9 @@ export function ProtocolPrint() {
           <div className="mb-6 border-2 border-red-400 bg-red-50 p-3 flex items-start gap-3 rounded-sm print:border-red-400 print:bg-red-50">
             <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
             <div>
-              <div className="text-sm font-bold uppercase tracking-widest text-red-700">⚠ EXEMPLO — NÃO CLÍNICO</div>
+              <div className="text-sm font-bold uppercase tracking-widest text-red-700">⚠ {t("demo.headerTitle", language)}</div>
               <div className="text-xs text-red-600 mt-0.5">
-                Este protocolo é uma ficha de demonstração com dados completamente fictícios.
-                Não deve ser utilizado para fins clínicos, legais ou administrativos.
+                {t("demo.headerBody", language)}
               </div>
             </div>
           </div>
@@ -1488,14 +1759,14 @@ export function ProtocolPrint() {
           <div>
             <img src={logo} alt="Clínica da Face" className="h-16 object-contain" />
             <div className="mt-2 text-xs text-gray-600 font-serif">{t("hdr.tagline1", language)}</div>
-            <div className="text-xs text-gray-500 font-serif">Dr. António Matos da Fonseca (Médico – Cirurgia Maxilo-Facial)</div>
+            <div className="text-xs text-gray-500 font-serif">{t("hdr.surgeonLine", language)}</div>
           </div>
           <div className="text-right">
             <h1 className="text-2xl font-bold uppercase tracking-widest text-primary">{docTitle}</h1>
-            {sel.identification && <div className="text-sm mt-1 text-gray-600">Proc. Nº {protocol.processNumber}</div>}
-            {sel.surgeryData && <div className="text-sm mt-1">Data: {protocol.surgeryDate ? format(new Date(protocol.surgeryDate), "dd/MM/yyyy") : "___/___/_____"}</div>}
+            {sel.identification && <div className="text-sm mt-1 text-gray-600">{t("hdr.processNo", language)} {protocol.processNumber}</div>}
+            {sel.surgeryData && <div className="text-sm mt-1">{t("hdr.date", language)}: {protocol.surgeryDate ? format(new Date(protocol.surgeryDate), "dd/MM/yyyy") : "___/___/_____"}</div>}
             {isDemo && (
-              <div className="mt-1 text-xs font-bold text-red-600 uppercase tracking-widest">⚠ DEMONSTRAÇÃO</div>
+              <div className="mt-1 text-xs font-bold text-red-600 uppercase tracking-widest">⚠ {t("demo.badge", language)}</div>
             )}
           </div>
         </div>
@@ -1505,11 +1776,11 @@ export function ProtocolPrint() {
         {isRelatorio ? diagnosisBlock : surgeryDataBlock}
 
         {/* Avisos importantes — apenas em documentos internos */}
-        {!isNota && !isRelatorio && sel.diagnosis && protocol.preopDiagnosis?.clinicalAlerts && (
+        {!isNota && !isRelatorio && sel.diagnosis && clinicalAlertsText && (
           <div className="mb-8 border-2 border-red-500 bg-red-50 p-4">
-            <h2 className="text-sm font-bold uppercase tracking-widest text-red-700 mb-2">⚠ Avisos Importantes</h2>
+            <h2 className="text-sm font-bold uppercase tracking-widest text-red-700 mb-2">⚠ {t("sec.alerts", language)}</h2>
             <div className="text-sm font-semibold text-red-900 whitespace-pre-wrap">
-              {protocol.preopDiagnosis.clinicalAlerts}
+              {clinicalAlertsText}
             </div>
           </div>
         )}
@@ -1519,23 +1790,23 @@ export function ProtocolPrint() {
         {medicalActsBlock}
 
         {sel.team && isRelatorio && (
-          <PrintSection title="Equipa">
+          <PrintSection title={t("sec.teamShort", language)}>
             <div className="text-sm leading-relaxed font-serif space-y-1">
-              <p>Equipa composta de Cirurgião, 1º Ajudante, 2º Ajudante, Instrumentista e Anestesista.</p>
-              <p>Responsável pela Equipa Cirúrgica: {surgeonName} – Nº OM {surgeonOm}</p>
+              <p>{t("team.composition", language)}</p>
+              <p>{t("team.lead", language)}: {surgeonName} – {t("team.omNo", language)} {surgeonOm}</p>
             </div>
           </PrintSection>
         )}
 
         {sel.team && !isRelatorio && (
-          <PrintSection title="Equipa Cirúrgica">
+          <PrintSection title={t("sec.team", language)}>
             <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
-              <div><span className="font-semibold text-gray-600">Cirurgião:</span> {protocol.team?.surgeon || "-"}</div>
-              <div><span className="font-semibold text-gray-600">Anestesista:</span> {protocol.team?.anesthesiologist || "-"}</div>
-              <div><span className="font-semibold text-gray-600">1º Ajudante:</span> {protocol.team?.firstAssistant || "-"}</div>
-              <div><span className="font-semibold text-gray-600">Instrumentista:</span> {protocol.team?.instrumentist || "-"}</div>
-              <div><span className="font-semibold text-gray-600">2º Ajudante:</span> {protocol.team?.secondAssistant || "-"}</div>
-              <div><span className="font-semibold text-gray-600">Circulante:</span> {protocol.team?.scrubNurse || "-"}</div>
+              <div><span className="font-semibold text-gray-600">{t("team.surgeon", language)}:</span> {protocol.team?.surgeon || "-"}</div>
+              <div><span className="font-semibold text-gray-600">{t("team.anesthesiologist", language)}:</span> {protocol.team?.anesthesiologist || "-"}</div>
+              <div><span className="font-semibold text-gray-600">{t("team.firstAssistant", language)}:</span> {protocol.team?.firstAssistant || "-"}</div>
+              <div><span className="font-semibold text-gray-600">{t("team.instrumentist", language)}:</span> {protocol.team?.instrumentist || "-"}</div>
+              <div><span className="font-semibold text-gray-600">{t("team.secondAssistant", language)}:</span> {protocol.team?.secondAssistant || "-"}</div>
+              <div><span className="font-semibold text-gray-600">{t("team.circulating", language)}:</span> {protocol.team?.scrubNurse || "-"}</div>
             </div>
           </PrintSection>
         )}
@@ -1543,13 +1814,13 @@ export function ProtocolPrint() {
         {sel.labPrediction && protocol.labPrediction && <LabPredictionPrint lab={protocol.labPrediction} lang={language} />}
 
         {sel.checklist && (protocol.checklist?.length ?? 0) > 0 && (
-          <PrintSection title="Checklist Pré-Operatória">
+          <PrintSection title={t("sec.checklist", language)}>
             <table className="w-full text-xs border-collapse border border-gray-300">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="border border-gray-300 px-2 py-1 text-left">Item</th>
-                  <th className="border border-gray-300 px-2 py-1 text-center w-20">Estado</th>
-                  <th className="border border-gray-300 px-2 py-1 text-left">Notas</th>
+                  <th className="border border-gray-300 px-2 py-1 text-left">{t("col.item", language)}</th>
+                  <th className="border border-gray-300 px-2 py-1 text-center w-20">{t("col.status", language)}</th>
+                  <th className="border border-gray-300 px-2 py-1 text-left">{t("col.notes", language)}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1565,17 +1836,121 @@ export function ProtocolPrint() {
           </PrintSection>
         )}
 
-        {sel.plan && protocol.surgicalPlan && <SurgicalPlanPrint plan={protocol.surgicalPlan} />}
+        {sel.prepChecklist && (
+          <PrintSection title={t("sec.prepChecklist", language)}>
+            <div className="text-xs mb-3 flex flex-wrap gap-x-6 gap-y-1">
+              <span>
+                <span className="font-semibold">{t("prep.appliance", language)}:</span>{" "}
+                {protocol.orthoAppliance
+                  ? prepI18n(`appliance.${protocol.orthoAppliance}`, language, APPLIANCE_LABELS[protocol.orthoAppliance as Appliance] ?? protocol.orthoAppliance)
+                  : "—"}
+              </span>
+              <span>
+                <span className="font-semibold">{t("prep.segmentation", language)}:</span>{" "}
+                {prepI18n(
+                  `seg.${(protocol.preparation?.segmentation as Segmentation) || "undecided"}`,
+                  language,
+                  SEGMENTATION_LABELS[(protocol.preparation?.segmentation as Segmentation) || "undecided"],
+                )}
+              </span>
+              {(() => {
+                const ctxP = buildPrepContext(protocol.orthoAppliance, protocol.preparation);
+                const { deadline } = computeActivationDeadline(protocol.surgeryDate, ctxP.appliance, protocol.preparation);
+                return deadline ? (
+                  <span>
+                    <span className="font-semibold">{t("prep.deadline", language)}:</span> {deadline}
+                  </span>
+                ) : null;
+              })()}
+            </div>
+            {(() => {
+              const ctxP = buildPrepContext(protocol.orthoAppliance, protocol.preparation);
+              return PREP_BLOCKS.map((block) => (
+                <div key={block.key} className="mb-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wider mb-1">{prepI18n(`block.${block.key}`, language, block.title)}</h3>
+                  <table className="w-full text-xs border-collapse border border-gray-300">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="border border-gray-300 px-2 py-1 text-left">{t("col.item", language)}</th>
+                        <th className="border border-gray-300 px-2 py-1 text-center w-28">{t("col.status", language)}</th>
+                        <th className="border border-gray-300 px-2 py-1 text-left">{t("col.notes", language)}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {block.items.map((def, i) => {
+                        const stored = protocol.preparation?.items?.find((it) => it.key === def.key);
+                        const status = effectiveItemStatus(def, ctxP, stored);
+                        return (
+                          <tr key={def.key} className={i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}>
+                            <td className={`border border-gray-300 px-2 py-1 ${status === "na_auto" ? "text-gray-400" : ""}`}>{prepI18n(def.key, language, def.label)}</td>
+                            <td className="border border-gray-300 px-2 py-1 text-center font-semibold">{t(`prep.status.${status}`, language)}</td>
+                            <td className="border border-gray-300 px-2 py-1 text-gray-600">
+                              {[stored?.detail, stored?.notes].filter(Boolean).join(" — ") || "—"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  {protocol.preparation?.blockNotes?.[block.key] && (
+                    <p className="text-xs text-gray-600 mt-1 whitespace-pre-wrap">{protocol.preparation.blockNotes[block.key]}</p>
+                  )}
+                </div>
+              ));
+            })()}
+            {(() => {
+              const ctxP = buildPrepContext(protocol.orthoAppliance, protocol.preparation);
+              return (
+                <div className="mt-2">
+                  <h3 className="text-xs font-bold uppercase tracking-wider mb-1">{t("prep.products", language)}</h3>
+                  <table className="w-full text-xs border-collapse border border-gray-300">
+                    <tbody>
+                      {PREP_PRODUCTS.map((def, i) => {
+                        const stored = protocol.preparation?.products?.find((p) => p.key === def.key);
+                        const status = effectiveProductStatus(def, ctxP, stored);
+                        return (
+                          <tr key={def.key} className={i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}>
+                            <td className={`border border-gray-300 px-2 py-1 ${status === "na_auto" ? "text-gray-400" : ""}`}>{prepI18n(`prod.${def.key}`, language, def.label)}</td>
+                            <td className="border border-gray-300 px-2 py-1 text-center font-semibold w-32">
+                              {status === "na_auto" ? t("prep.status.na_auto", language) : t(`prep.pstatus.${status}`, language)}
+                            </td>
+                            <td className="border border-gray-300 px-2 py-1 text-gray-600 w-28">
+                              {stored?.updatedAt ? stored.updatedAt.slice(0, 10) : "—"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
+          </PrintSection>
+        )}
 
-        {sel.plan && (protocol.surgicalPlan as any)?.nasalNotes && (
+        {sel.patientInstructions && (
+          <PrintSection title={t("sec.patientInstructions", language)}>
+            <div className="flex items-center gap-4">
+              <QRCodeSVG value={INSTRUCTIONS_APP_URL} size={80} />
+              <div className="text-sm">
+                <p className="mb-1">{t("prep.instructionsIntro", language)}</p>
+                <p className="font-mono text-xs">{INSTRUCTIONS_APP_URL}</p>
+              </div>
+            </div>
+          </PrintSection>
+        )}
+
+        {sel.plan && protocol.surgicalPlan && <SurgicalPlanPrint plan={protocol.surgicalPlan} lang={language} />}
+
+        {sel.plan && nasalNotesText && (
           <div className="mb-8 border border-amber-400 bg-amber-50 p-4">
-            <h2 className="text-sm font-bold uppercase tracking-widest text-amber-800 mb-2">Parte Nasal</h2>
-            <div className="text-sm whitespace-pre-wrap">{(protocol.surgicalPlan as any).nasalNotes}</div>
+            <h2 className="text-sm font-bold uppercase tracking-widest text-amber-800 mb-2">{t("sec.nasal", language)}</h2>
+            <div className="text-sm whitespace-pre-wrap">{nasalNotesText}</div>
           </div>
         )}
 
         {sel.sequence && (protocol.surgicalSequence?.length ?? 0) > 0 && (
-          <PrintSection title="Sequência Cirúrgica">
+          <PrintSection title={t("sec.sequence", language)}>
             <ol className="text-sm list-none space-y-1">
               {[...protocol.surgicalSequence!].sort((a, b) => a.order - b.order).map((step, i) => (
                 <li key={i} className="flex gap-3">
@@ -1597,28 +1972,28 @@ export function ProtocolPrint() {
 
         {sel.intraop && protocol.intraopRecord && (
           <div className="mb-8">
-            <h2 className="text-sm font-bold uppercase tracking-widest bg-gray-100 p-2 mb-4 border-l-4 border-primary">Registo Intra-operatório</h2>
+            <h2 className="text-sm font-bold uppercase tracking-widest bg-gray-100 p-2 mb-4 border-l-4 border-primary">{t("sec.intraop", language)}</h2>
             <div className="grid grid-cols-2 gap-4 text-sm border p-4">
               <div>
-                <span className="font-semibold text-gray-600 block mb-1">Anestesia</span>
-                Início: {protocol.intraopRecord.anesthesiaStartTime || "--:--"} <br />
-                Fim: {protocol.intraopRecord.anesthesiaEndTime || "--:--"}
+                <span className="font-semibold text-gray-600 block mb-1">{t("intraop.anesthesia", language)}</span>
+                {t("intraop.start", language)}: {protocol.intraopRecord.anesthesiaStartTime || "--:--"} <br />
+                {t("intraop.end", language)}: {protocol.intraopRecord.anesthesiaEndTime || "--:--"}
               </div>
               <div>
-                <span className="font-semibold text-gray-600 block mb-1">Cirurgia</span>
-                Início: {protocol.intraopRecord.surgeryStartTime || "--:--"} <br />
-                Fim: {protocol.intraopRecord.surgeryEndTime || "--:--"}
+                <span className="font-semibold text-gray-600 block mb-1">{t("intraop.surgery", language)}</span>
+                {t("intraop.start", language)}: {protocol.intraopRecord.surgeryStartTime || "--:--"} <br />
+                {t("intraop.end", language)}: {protocol.intraopRecord.surgeryEndTime || "--:--"}
               </div>
             </div>
 
             {protocol.intraopRecord.complications && protocol.intraopRecord.complications.length > 0 && (
               <div className="mt-4 text-sm border border-red-200 p-4 bg-red-50">
-                <span className="font-bold text-red-800 block mb-2">Complicações Intra-operatórias</span>
+                <span className="font-bold text-red-800 block mb-2">{t("intraop.complications", language)}</span>
                 <ul className="list-disc list-inside pl-4 text-red-900">
                   {protocol.intraopRecord.complications.map((comp, idx) => (
                     <li key={idx}>
                       {comp.description}
-                      {comp.action && <span className="text-gray-600 ml-2">(Ação: {comp.action})</span>}
+                      {comp.action && <span className="text-gray-600 ml-2">({t("intraop.action", language)}: {comp.action})</span>}
                     </li>
                   ))}
                 </ul>
@@ -1628,11 +2003,11 @@ export function ProtocolPrint() {
         )}
 
         {sel.materials && protocol.materials && (plates.length > 0 || drills.length > 0 || saws.length > 0) && (
-          <OsteosynthesisPrint plates={plates} drills={drills} saws={saws} />
+          <OsteosynthesisPrint plates={plates} drills={drills} saws={saws} lang={language} />
         )}
 
         {sel.planningImages && pdfImages.length > 0 && (
-          <PrintSection title="Planeamento Virtual 3D">
+          <PrintSection title={t("sec.planningImages", language)}>
             <div className="grid grid-cols-3 gap-4">
               {pdfImages.map(img => (
                 <div key={img.id} className="border border-gray-200">
@@ -1656,7 +2031,7 @@ export function ProtocolPrint() {
         )}
 
         {sel.clinicalPhotos && clinicalPhotos.length > 0 && (
-          <PrintSection title="Documentação Fotográfica Clínica">
+          <PrintSection title={t("sec.clinicalPhotos", language)}>
             <div className="grid grid-cols-3 gap-4">
               {clinicalPhotos.map(img => (
                 <div key={img.id} className="border border-gray-200">
@@ -1679,16 +2054,16 @@ export function ProtocolPrint() {
         )}
 
         {sel.files3d && pdfFiles3d.length > 0 && (
-          <PrintSection title="Inventário de Ficheiros 3D">
+          <PrintSection title={t("sec.files3d", language)}>
             <table className="w-full text-xs border-collapse border border-gray-300">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="border border-gray-300 px-2 py-1 text-left">Ficheiro</th>
-                  <th className="border border-gray-300 px-2 py-1 text-left">Tipo</th>
-                  <th className="border border-gray-300 px-2 py-1 text-center">Formato</th>
-                  <th className="border border-gray-300 px-2 py-1 text-left">Origem</th>
-                  <th className="border border-gray-300 px-2 py-1 text-center">Data</th>
-                  <th className="border border-gray-300 px-2 py-1 text-center">Versão</th>
+                  <th className="border border-gray-300 px-2 py-1 text-left">{t("files3d.file", language)}</th>
+                  <th className="border border-gray-300 px-2 py-1 text-left">{t("files3d.type", language)}</th>
+                  <th className="border border-gray-300 px-2 py-1 text-center">{t("files3d.format", language)}</th>
+                  <th className="border border-gray-300 px-2 py-1 text-left">{t("files3d.origin", language)}</th>
+                  <th className="border border-gray-300 px-2 py-1 text-center">{t("files3d.date", language)}</th>
+                  <th className="border border-gray-300 px-2 py-1 text-center">{t("files3d.version", language)}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1708,7 +2083,7 @@ export function ProtocolPrint() {
         )}
 
         {sel.diagrams && printedDiagrams.length > 0 && (
-          <PrintSection title="Diagramas Cirúrgicos — Osteotomias &amp; Marcações">
+          <PrintSection title={t("sec.diagrams", language)}>
             <div className="flex flex-wrap gap-6 justify-center">
               {printedDiagrams.map((d) => (
                 <SurgicalDiagramStatic key={d.id} diagramId={d.id} value={diagrams![d.id]!} width={240} />
@@ -1718,13 +2093,13 @@ export function ProtocolPrint() {
         )}
 
         {sel.piezo && piezoUsed && (
-          <PrintSection title="Equipamento Piezoelétrico">
+          <PrintSection title={t("sec.piezo", language)}>
             <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm border p-4">
-              <div><span className="font-semibold text-gray-600">Sistema:</span> {piezo!.brand === "wh" ? "W&H (Piezomed)" : piezo!.brand === "mectron" ? "Mectron (Piezosurgery)" : "Outro fabricante"}</div>
-              <div><span className="font-semibold text-gray-600">Modelo:</span> {piezo!.model || "—"}</div>
-              <div><span className="font-semibold text-gray-600">Ponta / Inserto:</span> {piezo!.tip || "—"}</div>
-              <div><span className="font-semibold text-gray-600">Nº de Série:</span> {piezo!.serial || "—"}</div>
-              {piezo!.notes && <div className="col-span-2"><span className="font-semibold text-gray-600">Observações:</span> {piezo!.notes}</div>}
+              <div><span className="font-semibold text-gray-600">{t("piezo.system", language)}:</span> {piezo!.brand === "wh" ? "W&H (Piezomed)" : piezo!.brand === "mectron" ? "Mectron (Piezosurgery)" : t("piezo.otherManufacturer", language)}</div>
+              <div><span className="font-semibold text-gray-600">{t("piezo.model", language)}:</span> {piezo!.model || "—"}</div>
+              <div><span className="font-semibold text-gray-600">{t("piezo.tip", language)}:</span> {piezo!.tip || "—"}</div>
+              <div><span className="font-semibold text-gray-600">{t("piezo.serial", language)}:</span> {piezo!.serial || "—"}</div>
+              {piezo!.notes && <div className="col-span-2"><span className="font-semibold text-gray-600">{t("piezo.notes", language)}:</span> {piezo!.notes}</div>}
             </div>
           </PrintSection>
         )}
@@ -1735,7 +2110,7 @@ export function ProtocolPrint() {
         {summaryBlock}
 
         {sel.internalNotes && internalNotesText && (
-          <PrintSection title="Instruções / Notas Pós-Operatórias (Internas)">
+          <PrintSection title={t("sec.internalNotes", language)}>
             <EditableText
               value={internalNotesText}
               className="text-sm leading-relaxed whitespace-pre-wrap font-serif"
@@ -1748,7 +2123,7 @@ export function ProtocolPrint() {
         {isDemo && (
           <div className="mt-8 p-3 border-2 border-red-300 bg-red-50 text-center">
             <div className="text-sm font-bold text-red-700 uppercase tracking-widest">
-              ⚠ DEMONSTRAÇÃO — DADOS FICTÍCIOS — NÃO CLÍNICO ⚠
+              ⚠ {t("demo.footer", language)} ⚠
             </div>
           </div>
         )}
@@ -1756,11 +2131,11 @@ export function ProtocolPrint() {
         {/* Reopen audit trail — só nas observações internas dos documentos internos */}
         {!isNota && sel.internalNotes && (protocol.reopenHistory?.length ?? 0) > 0 && (
           <div className="mt-8 pt-3 border-t border-gray-300 text-[10px] text-gray-500">
-            <span className="font-semibold uppercase tracking-widest">Histórico de reaberturas: </span>
+            <span className="font-semibold uppercase tracking-widest">{t("internal.reopenHistory", language)} </span>
             {protocol.reopenHistory!.map((ev, i) => (
               <span key={i}>
                 {i > 0 && "; "}
-                {new Date(ev.reopenedAt).toLocaleString("pt-PT")}
+                {new Date(ev.reopenedAt).toLocaleString(language === "en" ? "en-GB" : language === "es" ? "es-ES" : "pt-PT")}
                 {ev.reopenedBy ? ` (${ev.reopenedBy})` : ""}
               </span>
             ))}
@@ -1771,9 +2146,10 @@ export function ProtocolPrint() {
         <SurgeonSignature
           representative={protocol.signatureRepresentative}
           signatureUrl={signatureUrl}
+          lang={language}
         />
 
-        <ClinicFooter legal={isNota} />
+        <ClinicFooter legal={isNota} lang={language} />
 
       </div>
       )}

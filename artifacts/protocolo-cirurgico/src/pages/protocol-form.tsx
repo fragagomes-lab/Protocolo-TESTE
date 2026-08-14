@@ -10,7 +10,8 @@ import {
   FileText,
   Loader2,
   Printer,
-  Unlock
+  Unlock,
+  ClipboardList
 } from "lucide-react";
 
 import { useGetProtocol, useCreateProtocol, useUpdateProtocol, getGetProtocolQueryKey, getListProtocolsQueryKey, useGenerateOperativeDescription, useListPhrases } from "@workspace/api-client-react";
@@ -137,6 +138,10 @@ export function ProtocolForm() {
         labPrediction: protocol.labPrediction || {},
         insuranceEntity: protocol.insuranceEntity || undefined,
         beneficiaryNumber: protocol.beneficiaryNumber || undefined,
+        orthoAppliance: protocol.orthoAppliance || undefined,
+        // NB: "preparation" NÃO é carregado nem enviado pelo formulário — é
+        // gerido exclusivamente pelo separador Preparação, para evitar que um
+        // autosave com snapshot antigo apague alterações feitas lá.
       });
     }
   }, [protocol]);
@@ -234,6 +239,13 @@ export function ProtocolForm() {
       const current = formDataRef.current;
       if (!current.processNumber || !current.patientName) {
         toast.error("Processo e Nome do Paciente são obrigatórios");
+        setCurrentStep(1);
+        return;
+      }
+
+      // Aparelho ortodôntico é obrigatório na criação (Etapa B); editável depois.
+      if (isNew && !current.orthoAppliance) {
+        toast.error("Selecione o Aparelho ortodôntico (BRK ou Aligners)");
         setCurrentStep(1);
         return;
       }
@@ -361,6 +373,13 @@ export function ProtocolForm() {
         </div>
         
         <div className="flex items-center gap-3">
+          {!isNew && (
+            <Button variant="outline" asChild className="uppercase tracking-widest text-xs">
+              <Link href={`/protocols/${protocolId}/preparation`}>
+                <ClipboardList className="mr-2 h-4 w-4" /> Preparação
+              </Link>
+            </Button>
+          )}
           {!isNew && (
             <Button variant="outline" asChild className="uppercase tracking-widest text-xs">
               <Link href={`/protocols/${protocolId}/print`}>
@@ -586,6 +605,24 @@ export function ProtocolForm() {
                         </SelectContent>
                       </Select>
                     </div>
+                  </div>
+
+                  <div className="space-y-2 pt-4 border-t border-border/50">
+                    <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Aparelho Ortodôntico <span className="text-destructive">*</span></Label>
+                    <Select
+                      disabled={isFinalized}
+                      value={(formData as any).orthoAppliance || ""}
+                      onValueChange={(val) => updateForm("orthoAppliance" as any, val)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione BRK ou Aligners..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="brk">BRK (aparelho fixo)</SelectItem>
+                        <SelectItem value="aligners">Aligners (alinhadores)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[11px] text-muted-foreground">Obrigatório na criação; editável mais tarde no separador Preparação.</p>
                   </div>
 
                   <div className="space-y-2 pt-4 border-t border-border/50">

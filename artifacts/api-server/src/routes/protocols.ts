@@ -110,6 +110,8 @@ router.post("/protocols", async (req, res): Promise<void> => {
     homeMedication,
     postopRecommendations,
     labPrediction,
+    orthoAppliance,
+    preparation,
   } = parsed.data;
 
   const [protocol] = await db
@@ -151,6 +153,8 @@ router.post("/protocols", async (req, res): Promise<void> => {
       homeMedication: homeMedication ?? "",
       postopRecommendations: postopRecommendations ?? "",
       labPrediction: labPrediction ?? null,
+      orthoAppliance: orthoAppliance ?? null,
+      preparation: preparation ?? null,
     })
     .returning();
 
@@ -229,6 +233,146 @@ router.get("/protocols/recent", async (_req, res): Promise<void> => {
       updatedAt: p.updatedAt.toISOString(),
     })),
   );
+});
+
+// ── Pendências de preparação (Dashboard) ────────────────────────────────────
+// Regras do percurso (Etapa B): prazo da última ativação (BRK: 3 semanas antes
+// da cirurgia; Aligners: 2 semanas), alertas condicionais por resolver e
+// produtos não verificados com cirurgia a menos de 7 dias.
+// NB: tem de ficar ANTES da rota genérica /protocols/:id (Express 5).
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function parseIsoDate(s: unknown): Date | null {
+  if (typeof s !== "string" || !s) return null;
+  const d = new Date(s.length <= 10 ? `${s}T00:00:00` : s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+export function computeActivationDeadline(
+  surgeryDate: string | null,
+  orthoAppliance: string | null,
+  preparation: Record<string, unknown> | null,
+): { deadline: Date | null; manual: boolean } {
+  const manualDate = parseIsoDate(preparation?.activationDeadline);
+  if (manualDate && preparation?.activationDeadlineManual)
+    return { deadline: manualDate, manual: true };
+  const surgery = parseIsoDate(surgeryDate);
+  if (!surgery || !orthoAppliance) return { deadline: manualDate, manual: false };
+  const weeks = orthoAppliance === "aligners" ? 2 : 3;
+  return { deadline: new Date(surgery.getTime() - weeks * 7 * DAY_MS), manual: false };
+}
+
+router.get("/protocols/preparation-pending", async (_req, res): Promise<void> => {
+  const rows = await db
+    .select({
+      id: protocolsTable.id,
+      processNumber: protocolsTable.processNumber,
+      patientName: protocolsTable.patientName,
+      surgeryDate: protocolsTable.surgeryDate,
+      orthoAppliance: protocolsTable.orthoAppliance,
+      preparation: protocolsTable.preparation,
+      surgicalPlan: protocolsTable.surgicalPlan,
+    })
+    .from(protocolsTable)
+    .where(sql`${protocolsTable.status} != 'finalized'`)
+    .orderBy(desc(protocolsTable.updatedAt));
+
+  const now = new Date();
+  const result: Array<Record<string, unknown>> = [];
+
+  for (const row of rows) {
+    const prep = (row.preparation as Record<string, unknown> | null) ?? null;
+    const appliance = row.orthoAppliance;
+    const segmentation = (prep?.segmentation as string) ?? "undecided";
+    const pendencies: Array<{ type: string; message: string; severity: string }> = [];
+
+    // 1) Última ativação em risco/ultrapassada
+    const { deadline } = computeActivationDeadline(row.surgeryDate, appliance, prep);
+    const activationDone = prep?.lastActivationDone === true;
+    if (deadline && !activationDone) {
+      // O dia da data-limite ainda conta — só "ultrapassada" após o fim do dia.
+      const endOfDeadlineDay = deadline.getTime() + DAY_MS;
+      if (now.getTime() >= endOfDeadlineDay) {
+        pendencies.push({
+          type: "activation_deadline",
+          message: `Data-limite da última ativação ultrapassada (${deadline.toISOString().slice(0, 10)})`,
+          severity: "urgent",
+        });
+      } else if (endOfDeadlineDay - now.getTime() <= 8 * DAY_MS) {
+        pendencies.push({
+          type: "activation_deadline",
+          message: `Data-limite da última ativação próxima (${deadline.toISOString().slice(0, 10)})`,
+          severity: "warning",
+        });
+      }
+    }
+
+    // 2) Alertas condicionais do percurso por resolver
+    const alerts = Array.isArray(prep?.alerts)
+      ? (prep!.alerts as Array<{ key: string; resolved?: boolean }>)
+      : [];
+    const isResolved = (key: string) => alerts.some((a) => a.key === key && a.resolved);
+    if (appliance === "brk" && segmentation === "yes" && !isResolved("arco_continuo")) {
+      pendencies.push({
+        type: "conditional_alert",
+        message: "URGENTE — Instalar arco contínuo na arcada segmentada",
+        severity: "urgent",
+      });
+    }
+    if (appliance === "aligners" && !isResolved("clincheck")) {
+      pendencies.push({
+        type: "conditional_alert",
+        message: "Confirmar planeamento do ClinCheck pós-operatório (risco de atraso)",
+        severity: "warning",
+      });
+    }
+
+    // 3) Produtos não verificados com cirurgia a menos de 7 dias
+    const surgery = parseIsoDate(row.surgeryDate);
+    if (surgery) {
+      // Contar até ao FIM do dia da cirurgia (o próprio dia ainda conta).
+      const daysToSurgery = (surgery.getTime() + DAY_MS - now.getTime()) / DAY_MS;
+      if (daysToSurgery >= 0 && daysToSurgery < 8) {
+        const products = Array.isArray(prep?.products)
+          ? (prep!.products as Array<{ key: string; status?: string }>)
+          : [];
+        const decisions = (prep?.decisions as Record<string, unknown>) ?? {};
+        const applicable = (key: string): boolean => {
+          if (key === "alinhador_transicao")
+            return appliance === "aligners" && segmentation === "yes";
+          if (key === "guias_cirurgicas") return decisions.guides !== "splintless";
+          return true;
+        };
+        const productKeys = ["modelo_fisico", "alinhador_transicao", "placa_contencao", "guias_cirurgicas"];
+        const unverified = productKeys.filter((key) => {
+          if (!applicable(key)) return false;
+          const p = products.find((x) => x.key === key);
+          // "na_auto" é derivado do percurso: se o produto voltou a ser
+          // aplicável, um "na_auto" gravado NÃO conta como verificado.
+          return !p || p.status !== "verified";
+        });
+        if (unverified.length > 0) {
+          pendencies.push({
+            type: "products_unverified",
+            message: `${unverified.length} produto(s) por verificar com cirurgia a menos de 7 dias`,
+            severity: "urgent",
+          });
+        }
+      }
+    }
+
+    if (pendencies.length > 0) {
+      result.push({
+        protocolId: row.id,
+        processNumber: row.processNumber,
+        patientName: row.patientName,
+        surgeryDate: row.surgeryDate,
+        pendencies,
+      });
+    }
+  }
+
+  res.json(result);
 });
 
 // Get protocol
@@ -385,6 +529,10 @@ router.patch("/protocols/:id", async (req, res): Promise<void> => {
     updateData.postopRecommendations = data.postopRecommendations;
   if (data.labPrediction !== undefined)
     updateData.labPrediction = data.labPrediction;
+  if (data.orthoAppliance !== undefined)
+    updateData.orthoAppliance = data.orthoAppliance;
+  if (data.preparation !== undefined)
+    updateData.preparation = data.preparation;
 
   // documentEdits: merge por chave dentro de transação com bloqueio da linha —
   // gravações concorrentes de blocos diferentes nunca se apagam mutuamente.

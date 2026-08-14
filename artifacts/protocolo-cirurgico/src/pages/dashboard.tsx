@@ -1,4 +1,4 @@
-import { useGetProtocolStats, useGetRecentProtocols } from "@workspace/api-client-react";
+import { useGetProtocolStats, useGetRecentProtocols, useGetPreparationPending } from "@workspace/api-client-react";
 import { Link } from "wouter";
 import { 
   FileText, 
@@ -6,7 +6,8 @@ import {
   Clock, 
   Activity,
   PlusCircle,
-  ChevronRight
+  ChevronRight,
+  AlertTriangle
 } from "lucide-react";
 import { format } from "date-fns";
 import logo from "@assets/clinicadaface-logo.gif";
@@ -21,6 +22,7 @@ import { ProtocolSummaryStatus } from "@workspace/api-client-react";
 export function Dashboard() {
   const { data: stats, isLoading: isStatsLoading } = useGetProtocolStats();
   const { data: recent, isLoading: isRecentLoading } = useGetRecentProtocols();
+  const { data: pending } = useGetPreparationPending();
 
   const getStatusBadge = (status: ProtocolSummaryStatus) => {
     switch (status) {
@@ -107,6 +109,55 @@ export function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Pendências de Preparação */}
+        {!!pending?.length && (
+          <Card className="shadow-xs border-amber-300/70 border-2">
+            <CardHeader>
+              <CardTitle className="text-sm uppercase tracking-widest font-medium flex items-center gap-2 text-amber-800">
+                <AlertTriangle className="h-4 w-4" /> Pendências de Preparação
+              </CardTitle>
+              <CardDescription>Protocolos com prazos em risco, alertas por resolver ou produtos por verificar</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="divide-y border border-border/50 rounded-sm">
+                {pending.map((p) => (
+                  <Link
+                    key={p.protocolId}
+                    href={`/protocols/${p.protocolId}/preparation`}
+                    className="block hover:bg-muted/30 transition-colors"
+                  >
+                    <div className="flex items-center justify-between p-4 gap-4">
+                      <div className="flex flex-col gap-1 min-w-0">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <span className="font-medium text-foreground">{p.patientName}</span>
+                          <span className="text-xs text-muted-foreground">Processo: {p.processNumber}</span>
+                          {p.surgeryDate && (
+                            <span className="text-xs text-muted-foreground">
+                              Cirurgia: {format(new Date(p.surgeryDate), "dd/MM/yyyy")}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {p.pendencies.map((pd, i) => (
+                            <Badge
+                              key={i}
+                              variant={pd.severity === "urgent" ? "destructive" : "secondary"}
+                              className="text-[10px] uppercase tracking-wider"
+                            >
+                              {pd.message}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-muted-foreground/50 shrink-0" />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Recent Protocols */}
         <Card className="shadow-xs border-border/50">

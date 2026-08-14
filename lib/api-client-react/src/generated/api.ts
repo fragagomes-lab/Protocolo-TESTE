@@ -45,6 +45,7 @@ import type {
   PlateCatalogEntry,
   PlateCatalogInput,
   PlateCatalogUpdate,
+  PreparationPendingItem,
   Protocol,
   ProtocolInput,
   ProtocolStats,
@@ -461,6 +462,83 @@ export function useGetRecentProtocols<TData = Awaited<ReturnType<typeof getRecen
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetRecentProtocolsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetPreparationPendingUrl = () => {
+
+
+
+
+  return `/api/protocols/preparation-pending`
+}
+
+/**
+ * @summary Pendências de preparação para o Dashboard (protocolos não finalizados)
+ */
+export const getPreparationPending = async ( options?: RequestInit): Promise<PreparationPendingItem[]> => {
+
+  return customFetch<PreparationPendingItem[]>(getGetPreparationPendingUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPreparationPendingQueryKey = () => {
+    return [
+    `/api/protocols/preparation-pending`
+    ] as const;
+    }
+
+
+export const getGetPreparationPendingQueryOptions = <TData = Awaited<ReturnType<typeof getPreparationPending>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPreparationPending>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPreparationPendingQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPreparationPending>>> = ({ signal }) => getPreparationPending({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPreparationPending>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPreparationPendingQueryResult = NonNullable<Awaited<ReturnType<typeof getPreparationPending>>>
+export type GetPreparationPendingQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Pendências de preparação para o Dashboard (protocolos não finalizados)
+ */
+
+export function useGetPreparationPending<TData = Awaited<ReturnType<typeof getPreparationPending>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPreparationPending>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPreparationPendingQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

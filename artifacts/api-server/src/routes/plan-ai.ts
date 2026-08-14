@@ -641,14 +641,19 @@ router.post("/protocols/:id/translate-document", async (req, res): Promise<void>
   const openai = getAiClient();
   if (!openai) { aiNotConfigured(res); return; }
 
-  const langName = language === "en" ? "inglês" : "espanhol";
+  const langName = language === "en" ? "inglês britânico (British English)" : "espanhol";
+  const britishNote =
+    language === "en"
+      ? `Usa SEMPRE ortografia e terminologia de Inglês Britânico (ex.: anaesthesia, haemorrhage, orthopantomogram, theatre, sufixos -ise). ` +
+        `Mantém em português os nomes próprios, moradas e contactos da clínica, e o nome do cirurgião; traduz a designação profissional (ex.: "Oral and Maxillofacial Surgeon"). `
+      : `Mantém em português os nomes próprios, moradas e contactos da clínica, e o nome do cirurgião; traduz a designação profissional (ex.: "Cirujano Oral y Maxilofacial"). `;
   try {
     const parsed = (await callAiJson(openai, EXTRACT_MODEL, [
       {
         type: "text",
         text:
           `Traduz para ${langName} os textos de um relatório clínico de cirurgia ortognática. ` +
-          `Usa terminologia médica correta nesse idioma. NÃO acrescentes, resumas nem alteres informação clínica; ` +
+          `Usa terminologia médica correta nesse idioma. ${britishNote}NÃO acrescentes, resumas nem alteres informação clínica; ` +
           `mantém números, datas, códigos (ex.: códigos OM), nomes próprios e formatação (quebras de linha) exatamente como estão. ` +
           `Responde APENAS JSON: {"translations":[{"key":string,"text":string}]} com exatamente as mesmas keys recebidas.\n\n` +
           `TEXTOS:\n${JSON.stringify(texts)}`,
